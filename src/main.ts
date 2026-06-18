@@ -86,7 +86,7 @@ const scene = new Scene();
 scene.background = new Color(0x101418);
 
 const camera = new PerspectiveCamera(45, 1, 0.1, 100);
-camera.position.set(0, 1.65, 5.2);
+camera.position.set(0, 1.65, 4.2);
 camera.lookAt(0, 1.1, 0);
 
 const renderer = new WebGLRenderer({ antialias: true });

@@ -38,7 +38,7 @@ npm run pose:model
 Put a clip in `data/input/`, then run:
 
 ```powershell
-npm run pipeline -- --input data/input/my-jump-shot.mp4 --name my-jump-shot
+npx tsx scripts/runPipeline.ts --input data/input/my-jump-shot.mp4 --name my-jump-shot
 ```
 
 Outputs are written to `public/runs/<name>/`:
@@ -56,6 +56,28 @@ npm run dev
 ```
 
 Open [http://127.0.0.1:5173/?run=my-jump-shot](http://127.0.0.1:5173/?run=my-jump-shot).
+
+## Real Pexels Samples
+
+Download and process the committed real-footage examples:
+
+```powershell
+npm run process:pexels
+```
+
+Then open:
+
+- [http://127.0.0.1:5173/?run=pexels-5586522](http://127.0.0.1:5173/?run=pexels-5586522)
+- [http://127.0.0.1:5173/?run=pexels-5192069](http://127.0.0.1:5173/?run=pexels-5192069)
+
+The MP4 files are downloaded from Pexels into `data/input/` and intentionally ignored by git. The generated viewer-ready `animation.json` and `report.json` files for these two runs are committed under `public/runs/`.
+
+Record a local viewer proof video:
+
+```powershell
+npm run build
+npm run record:pexels
+```
 
 ## Smoke Test
 

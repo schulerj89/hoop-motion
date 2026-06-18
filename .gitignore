@@ -12,8 +12,18 @@ data/input/*.mov
 data/input/*.m4v
 data/input/*.avi
 models/*.task
-public/runs/
 
-# Keep versioned proof screenshots under docs/screenshots.
+# Keep selected real-footage example runs, but not bulky extracted screenshots.
+public/runs/*
+!public/runs/pexels-5586522/
+public/runs/pexels-5586522/*
+!public/runs/pexels-5586522/animation.json
+!public/runs/pexels-5586522/report.json
+!public/runs/pexels-5192069/
+public/runs/pexels-5192069/*
+!public/runs/pexels-5192069/animation.json
+!public/runs/pexels-5192069/report.json
+
+# Keep versioned proof screenshots and videos under docs/screenshots.
 test-results/
 playwright-report/

@@ -2,6 +2,15 @@
 
 All notable changes to HoopMotion are tracked here using semantic versioning.
 
+## 0.1.1 - 2026-06-17
+
+### Added
+
+- Pexels sample download script for two real basketball clips.
+- Committed real-footage animation/report outputs for `pexels-5586522` and `pexels-5192069`.
+- Playwright WebM recording of the local Three.js viewer playing a real-footage-derived animation on the humanoid model.
+- Compact source-frame and pose-overlay proof images for real-footage validation.
+
 ## 0.1.0 - 2026-06-17
 
 ### Added
