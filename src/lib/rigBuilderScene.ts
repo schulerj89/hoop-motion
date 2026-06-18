@@ -40,10 +40,10 @@ export class RigBuilderScene {
   private readonly rigLine = createRigLine();
   private modelRoot = new Group();
   private selectedJoint: JointName = "Hips";
-  private rig: RigFile = createEmptyRig("untitled-rig", "/models/hoopbot.glb", "hoopbot.glb");
+  private rig: RigFile = createEmptyRig("untitled-rig", "/models/posebot.glb", "posebot.glb");
   private active = false;
-  private modelUrl = "/models/hoopbot.glb";
-  private modelName = "hoopbot.glb";
+  private modelUrl = "/models/posebot.glb";
+  private modelName = "posebot.glb";
   private onChange: (rig: RigFile) => void;
   private readonly transformHelper: Object3D;
 
@@ -59,7 +59,7 @@ export class RigBuilderScene {
     this.renderer = renderer;
     this.stage = stage;
     this.onChange = onChange;
-    this.markerGroup.name = "HoopMotion_RigMarkers";
+    this.markerGroup.name = "KineRig_RigMarkers";
     this.markerGroup.renderOrder = 30;
     this.scene.add(this.modelRoot, this.markerGroup, this.rigLine);
     this.transformControls = new TransformControls(camera, renderer.domElement);
@@ -139,7 +139,7 @@ export class RigBuilderScene {
   private replaceModel(model: Object3D): void {
     this.scene.remove(this.modelRoot);
     this.modelRoot = new Group();
-    this.modelRoot.name = "HoopMotion_RigModelRoot";
+    this.modelRoot.name = "KineRig_RigModelRoot";
     this.modelRoot.add(model);
     this.scene.add(this.modelRoot);
     this.modelRoot.visible = this.active;
@@ -241,7 +241,7 @@ function createRigLine(): LineSegments {
     depthTest: false
   });
   const line = new LineSegments(geometry, material);
-  line.name = "HoopMotion_AuthoringRigLine";
+  line.name = "KineRig_AuthoringRigLine";
   line.renderOrder = 25;
   return line;
 }

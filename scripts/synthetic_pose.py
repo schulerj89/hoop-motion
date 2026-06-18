@@ -49,20 +49,18 @@ def generate_landmarks(motion: str, frame_index: int, total_frames: int) -> list
     jump = 0.0
     squat = 0.0
     arm_raise = 0.25
-    dribble = 0.0
+    wave = 0.0
 
-    if motion == "defensive-slide":
+    if motion == "side-step":
         lateral = math.sin(t * math.tau) * 0.12
         squat = 0.05
         arm_raise = 0.15
-    elif motion == "dribble":
+    elif motion == "wave":
         lateral = math.sin(t * math.tau * 0.75) * 0.04
-        dribble = (math.sin(t * math.tau * 3.0) + 1.0) * 0.5
-        squat = 0.03
-        arm_raise = 0.05
+        wave = math.sin(t * math.tau * 3.0)
+        squat = 0.015
+        arm_raise = 0.35
     else:
-        takeoff = math.sin(min(max((t - 0.22) / 0.58, 0.0), 1.0) * math.pi)
-        jump = takeoff * 0.16
         squat = max(0.0, 0.08 - abs(t - 0.18) * 0.4)
         arm_raise = min(1.0, max(0.0, (t - 0.18) / 0.34))
 
@@ -90,12 +88,12 @@ def generate_landmarks(motion: str, frame_index: int, total_frames: int) -> list
     landmarks[31] = confidence_landmark(left_knee_x - 0.05, ankle_y + 0.025)
     landmarks[32] = confidence_landmark(right_knee_x + 0.05, ankle_y + 0.025)
 
-    if motion == "dribble":
-        landmarks[13] = confidence_landmark(hips_x - 0.15, shoulder_y + 0.11)
-        landmarks[15] = confidence_landmark(hips_x - 0.18, shoulder_y + 0.20)
-        landmarks[14] = confidence_landmark(hips_x + 0.13, shoulder_y + 0.17)
-        landmarks[16] = confidence_landmark(hips_x + 0.18, shoulder_y + 0.28 + dribble * 0.18)
-    elif motion == "defensive-slide":
+    if motion == "wave":
+        landmarks[13] = confidence_landmark(hips_x - 0.13, shoulder_y + 0.13)
+        landmarks[15] = confidence_landmark(hips_x - 0.16, shoulder_y + 0.22)
+        landmarks[14] = confidence_landmark(hips_x + 0.14, shoulder_y - 0.02)
+        landmarks[16] = confidence_landmark(hips_x + 0.19 + wave * 0.035, shoulder_y - 0.18 + abs(wave) * 0.035)
+    elif motion == "side-step":
         landmarks[13] = confidence_landmark(hips_x - 0.23, shoulder_y + 0.06)
         landmarks[15] = confidence_landmark(hips_x - 0.31, shoulder_y + 0.12)
         landmarks[14] = confidence_landmark(hips_x + 0.23, shoulder_y + 0.06)
@@ -159,25 +157,23 @@ def draw_pose(frame: np.ndarray, landmarks: list[dict[str, float] | None]) -> np
     return overlay
 
 
-def draw_court_frame(width: int, height: int) -> np.ndarray:
-    frame = np.full((height, width, 3), (42, 80, 92), dtype=np.uint8)
-    cv2.rectangle(frame, (0, int(height * 0.72)), (width, height), (39, 112, 145), -1)
-    cv2.line(frame, (0, int(height * 0.72)), (width, int(height * 0.72)), (220, 235, 220), 2)
-    cv2.circle(frame, (int(width * 0.5), int(height * 0.83)), int(width * 0.13), (220, 235, 220), 2)
-    cv2.rectangle(
-        frame,
-        (int(width * 0.42), int(height * 0.72)),
-        (int(width * 0.58), height),
-        (220, 235, 220),
-        2,
-    )
+def draw_studio_frame(width: int, height: int) -> np.ndarray:
+    frame = np.full((height, width, 3), (42, 50, 56), dtype=np.uint8)
+    cv2.rectangle(frame, (0, int(height * 0.72)), (width, height), (54, 65, 72), -1)
+    cv2.line(frame, (0, int(height * 0.72)), (width, int(height * 0.72)), (128, 152, 161), 2)
+    for index in range(1, 6):
+        x = int(width * index / 6)
+        cv2.line(frame, (x, int(height * 0.72)), (x, height), (70, 83, 91), 1)
+    for index in range(1, 4):
+        y = int(height * (0.72 + index * 0.07))
+        cv2.line(frame, (0, y), (width, y), (70, 83, 91), 1)
     return frame
 
 
 def infer_motion_from_path(path: str) -> str:
     normalized = path.lower().replace("_", "-")
-    if "dribble" in normalized:
-        return "dribble"
-    if "defensive" in normalized or "slide" in normalized:
-        return "defensive-slide"
-    return "jump-shot"
+    if "wave" in normalized:
+        return "wave"
+    if "side-step" in normalized or "sidestep" in normalized or "slide" in normalized:
+        return "side-step"
+    return "reach"

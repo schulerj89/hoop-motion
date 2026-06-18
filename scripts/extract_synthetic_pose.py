@@ -15,7 +15,7 @@ def main() -> None:
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--screenshots", required=True)
-    parser.add_argument("--motion", choices=["jump-shot", "dribble", "defensive-slide"], default=None)
+    parser.add_argument("--motion", choices=["reach", "wave", "side-step"], default=None)
     parser.add_argument("--screenshot-interval", type=int, default=30)
     args = parser.parse_args()
 
@@ -65,7 +65,7 @@ def main() -> None:
 
     cap.release()
     payload = {
-        "schemaVersion": "hoopmotion.landmarks.v1",
+        "schemaVersion": "kinerig.landmarks.v1",
         "sourceVideo": args.input,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "synthetic": True,

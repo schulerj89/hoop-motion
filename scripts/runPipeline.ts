@@ -67,7 +67,7 @@ async function main(): Promise<void> {
     input: rawLandmarksPath,
     output: animationPath,
     report: reportPath,
-    modelUrl: "/models/hoopbot.glb"
+    modelUrl: "/models/posebot.glb"
   });
 
   console.log(`Run ready: ${runDir}`);

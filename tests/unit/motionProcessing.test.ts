@@ -19,7 +19,7 @@ describe("processLandmarks", () => {
 
 function buildRawLandmarks(): LandmarkFile {
   return {
-    schemaVersion: "hoopmotion.landmarks.v1",
+    schemaVersion: "kinerig.landmarks.v1",
     sourceVideo: "fixture.mp4",
     generatedAt: new Date(0).toISOString(),
     synthetic: true,

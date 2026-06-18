@@ -38,7 +38,7 @@ export interface RawPoseFrame {
 }
 
 export interface LandmarkFile {
-  schemaVersion: "hoopmotion.landmarks.v1";
+  schemaVersion: "kinerig.landmarks.v1" | "hoopmotion.landmarks.v1";
   sourceVideo: string;
   generatedAt: string;
   synthetic?: boolean;
@@ -74,7 +74,7 @@ export interface BoneDefinition {
 }
 
 export interface ValidationReport {
-  schemaVersion: "hoopmotion.report.v1";
+  schemaVersion: "kinerig.report.v1" | "hoopmotion.report.v1";
   sourceVideo: string;
   generatedAt: string;
   synthetic: boolean;
@@ -88,7 +88,7 @@ export interface ValidationReport {
 }
 
 export interface AnimationFile {
-  schemaVersion: "hoopmotion.animation.v1";
+  schemaVersion: "kinerig.animation.v1" | "hoopmotion.animation.v1";
   sourceVideo: string;
   generatedAt: string;
   synthetic: boolean;
@@ -108,7 +108,7 @@ export interface RigJointMarker {
 }
 
 export interface RigFile {
-  schemaVersion: "hoopmotion.rig.v1";
+  schemaVersion: "kinerig.rig.v1" | "hoopmotion.rig.v1";
   name: string;
   generatedAt: string;
   modelUrl?: string;
@@ -119,7 +119,7 @@ export interface RigFile {
 }
 
 export interface RetargetPackageFile {
-  schemaVersion: "hoopmotion.retarget-package.v1";
+  schemaVersion: "kinerig.retarget-package.v1" | "hoopmotion.retarget-package.v1";
   generatedAt: string;
   rig: RigFile;
   animation?: AnimationFile;

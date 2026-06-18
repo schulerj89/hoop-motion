@@ -24,8 +24,8 @@ import type { AnimationFile, JointName, RigFile, ValidationReport } from "./lib/
 
 declare global {
   interface Window {
-    __HOOPMOTION_READY?: boolean;
-    __HOOPMOTION_RIG_READY?: boolean;
+    __KINERIG_READY?: boolean;
+    __KINERIG_RIG_READY?: boolean;
   }
 }
 
@@ -41,7 +41,7 @@ app.innerHTML = `
         <div class="brand">
           <span class="mark"></span>
           <div>
-            <h1>HoopMotion</h1>
+            <h1>KineRig Studio</h1>
             <p id="runLabel">Loading</p>
           </div>
         </div>
@@ -50,7 +50,7 @@ app.innerHTML = `
           <button id="rigMode" type="button">Rig Builder</button>
         </div>
         <div class="run-picker">
-          <input id="runInput" type="text" value="fixture-jump-shot" aria-label="Run name" />
+          <input id="runInput" type="text" value="fixture-reach" aria-label="Run name" />
           <button id="loadRun" type="button">Load</button>
         </div>
         <div class="controls">
@@ -79,7 +79,7 @@ app.innerHTML = `
       <section id="rigPanel" class="rig-panel" hidden>
         <h2>Rig Builder</h2>
         <div class="rig-row">
-          <input id="rigModelUrl" type="text" value="/models/hoopbot.glb" aria-label="Model URL" />
+          <input id="rigModelUrl" type="text" value="/models/posebot.glb" aria-label="Model URL" />
           <button id="loadRigModel" type="button">Load</button>
         </div>
         <label class="file-button">
@@ -154,13 +154,13 @@ scene.add(key);
 
 const floor = new Mesh(
   new PlaneGeometry(8, 5),
-  new MeshStandardMaterial({ color: 0xb86b36, roughness: 0.72, metalness: 0.02 })
+  new MeshStandardMaterial({ color: 0x2f3b44, roughness: 0.8, metalness: 0.03 })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 
-const grid = new GridHelper(8, 16, 0xf4d7a0, 0x3aa17e);
+const grid = new GridHelper(8, 16, 0x8fa7b3, 0x32424c);
 grid.position.y = 0.003;
 scene.add(grid);
 
@@ -176,7 +176,7 @@ let animation: AnimationFile | undefined;
 let report: ValidationReport | undefined;
 let frameIndex = 0;
 let playing = true;
-let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-jump-shot";
+let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-reach";
 let loading = false;
 const rigBuilder = new RigBuilderScene(scene, camera, renderer, stage, updateRigPanel);
 
@@ -239,7 +239,7 @@ rigModelFile.addEventListener("change", () => {
   rigBuilder.loadModelFromFile(file)
     .then(() => {
       rigModelUrl.value = file.name;
-      window.__HOOPMOTION_RIG_READY = true;
+      window.__KINERIG_RIG_READY = true;
       updateRigPanel(rigBuilder.getRig());
       renderCurrentRigFrame();
     })
@@ -281,7 +281,7 @@ async function loadRun(nextRunName: string): Promise<void> {
     return;
   }
   loading = true;
-  window.__HOOPMOTION_READY = false;
+  window.__KINERIG_READY = false;
   runName = nextRunName;
   runLabel.textContent = runName;
   reportList.innerHTML = "";
@@ -298,7 +298,7 @@ async function loadRun(nextRunName: string): Promise<void> {
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync(animation.modelUrl);
   modelRoot = gltf.scene;
-  modelRoot.name = "HoopMotion_ModelRoot";
+  modelRoot.name = "KineRig_ModelRoot";
   scene.add(modelRoot);
 
   frameIndex = 0;
@@ -309,7 +309,7 @@ async function loadRun(nextRunName: string): Promise<void> {
   renderReport(report);
   renderCurrentFrame();
   loading = false;
-  window.__HOOPMOTION_READY = true;
+  window.__KINERIG_READY = true;
 }
 
 async function loadRigAuthoringModel(modelUrl: string): Promise<void> {
@@ -317,7 +317,7 @@ async function loadRigAuthoringModel(modelUrl: string): Promise<void> {
     return;
   }
   loading = true;
-  window.__HOOPMOTION_RIG_READY = false;
+  window.__KINERIG_RIG_READY = false;
   runLabel.textContent = "Rig Builder";
   scene.remove(modelRoot);
   modelRoot = new Group();
@@ -328,7 +328,7 @@ async function loadRigAuthoringModel(modelUrl: string): Promise<void> {
   updateRigPanel(rigBuilder.getRig());
   renderCurrentRigFrame();
   loading = false;
-  window.__HOOPMOTION_RIG_READY = true;
+  window.__KINERIG_RIG_READY = true;
 }
 
 function render(): void {

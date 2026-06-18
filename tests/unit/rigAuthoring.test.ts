@@ -8,7 +8,7 @@ describe("rig authoring", () => {
     const model = new Mesh(new BoxGeometry(1, 2, 0.5), new MeshBasicMaterial());
     const rig = createAutoRigFromModel(model, "box-rig", "/models/box.glb", "box.glb");
 
-    expect(rig.schemaVersion).toBe("hoopmotion.rig.v1");
+    expect(rig.schemaVersion).toBe("kinerig.rig.v1");
     expect(Object.keys(rig.joints)).toHaveLength(JOINT_NAMES.length);
     expect(rig.joints.Hips?.position[1]).toBeLessThan(rig.joints.Head!.position[1]);
     expect(rig.joints.LeftWrist!.position[0]).toBeLessThan(rig.joints.RightWrist!.position[0]);
@@ -21,7 +21,7 @@ describe("rig authoring", () => {
     const pkg = createRetargetPackage(sanitized);
 
     expect(sanitized.joints.Head?.source).toBe("import");
-    expect(pkg.schemaVersion).toBe("hoopmotion.retarget-package.v1");
+    expect(pkg.schemaVersion).toBe("kinerig.retarget-package.v1");
     expect(pkg.rig.joints.Hips).toBeDefined();
   });
 });

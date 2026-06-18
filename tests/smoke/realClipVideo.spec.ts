@@ -10,11 +10,11 @@ test.use({
   }
 });
 
-test("records real Pexels clip animation playback", async ({ page }) => {
-  await page.goto("/?run=pexels-5586522");
-  await page.waitForFunction(() => window.__HOOPMOTION_READY === true);
-  await expect(page.locator("#runLabel")).toHaveText("pexels-5586522");
-  await expect(page.locator("#reportList")).toContainText("100.0%");
+test("records neutral sample animation playback", async ({ page }) => {
+  await page.goto("/?run=fixture-reach");
+  await page.waitForFunction(() => window.__KINERIG_READY === true);
+  await expect(page.locator("#runLabel")).toHaveText("fixture-reach");
+  await expect(page.locator("#reportList")).toContainText("Frames");
   await page.waitForTimeout(5_000);
 
   const video = page.video();
@@ -24,7 +24,7 @@ test("records real Pexels clip animation playback", async ({ page }) => {
     throw new Error("Playwright did not produce a video artifact");
   }
 
-  const outputDir = path.resolve("docs/screenshots/v1.0.0");
+  const outputDir = path.resolve("docs/screenshots/v1.1.0");
   mkdirSync(outputDir, { recursive: true });
-  copyFileSync(videoPath, path.join(outputDir, "pexels-5586522-viewer-playback.webm"));
+  copyFileSync(videoPath, path.join(outputDir, "fixture-reach-viewer-playback.webm"));
 });

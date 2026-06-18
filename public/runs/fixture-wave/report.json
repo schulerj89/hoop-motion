@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "kinerig.report.v1",
+  "sourceVideo": "data/input/fixture_wave.mp4",
+  "generatedAt": "2026-06-18T19:20:59.405Z",
+  "synthetic": true,
+  "fps": 30,
+  "framesProcessed": 90,
+  "detectedFrames": 90,
+  "detectionSuccessRate": 1,
+  "averageConfidence": 0.9599999999999989,
+  "missingJointCount": 5,
+  "interpolatedJointCount": 5
+}

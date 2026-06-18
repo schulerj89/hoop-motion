@@ -88,13 +88,16 @@ input[type="text"] {
 .mark {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 8px;
   background:
-    linear-gradient(90deg, transparent 47%, #28140c 48%, #28140c 52%, transparent 53%),
-    linear-gradient(0deg, transparent 47%, #28140c 48%, #28140c 52%, transparent 53%),
-    #d86e1d;
-  border: 2px solid #f0a152;
-  box-shadow: inset 0 0 0 2px #9d4618;
+    radial-gradient(circle at 28% 28%, #7dffcf 0 3px, transparent 4px),
+    radial-gradient(circle at 70% 30%, #b9f6ff 0 3px, transparent 4px),
+    radial-gradient(circle at 50% 72%, #c2a7ff 0 3px, transparent 4px),
+    linear-gradient(38deg, transparent 46%, #81c7d4 47% 53%, transparent 54%),
+    linear-gradient(142deg, transparent 45%, #87e8c0 46% 52%, transparent 53%),
+    #162128;
+  border: 1px solid #51636d;
+  box-shadow: inset 0 0 0 1px #24343c;
 }
 
 h1,
@@ -137,9 +140,9 @@ h2 {
 }
 
 .mode-tabs button.active {
-  background: #f09839;
+  background: #7dffcf;
   color: #101418;
-  border-color: #f6bb73;
+  border-color: #b9f6ff;
 }
 
 .run-picker input {
@@ -187,7 +190,7 @@ h2 {
 
 input[type="range"] {
   width: 100%;
-  accent-color: #f09839;
+  accent-color: #7dffcf;
 }
 
 .report-panel {
@@ -273,7 +276,7 @@ input[type="range"] {
   height: 7px;
   margin-left: 6px;
   border-radius: 50%;
-  background: #f09839;
+  background: #7dffcf;
 }
 
 .rig-mode .timeline-row {

@@ -11,7 +11,7 @@ import type {
 
 export function createEmptyRig(name = "untitled-rig", modelUrl?: string, modelName?: string): RigFile {
   return {
-    schemaVersion: "hoopmotion.rig.v1",
+    schemaVersion: "kinerig.rig.v1",
     name,
     generatedAt: new Date().toISOString(),
     modelUrl,
@@ -69,7 +69,7 @@ export function createAutoRigFromModel(
   ) as Record<JointName, RigJointMarker>;
 
   return {
-    schemaVersion: "hoopmotion.rig.v1",
+    schemaVersion: "kinerig.rig.v1",
     name,
     generatedAt: new Date().toISOString(),
     modelUrl,
@@ -103,7 +103,7 @@ export function countPlacedJoints(rig: RigFile): number {
 
 export function createRetargetPackage(rig: RigFile, animation?: AnimationFile): RetargetPackageFile {
   return {
-    schemaVersion: "hoopmotion.retarget-package.v1",
+    schemaVersion: "kinerig.retarget-package.v1",
     generatedAt: new Date().toISOString(),
     rig,
     animation
@@ -111,7 +111,7 @@ export function createRetargetPackage(rig: RigFile, animation?: AnimationFile): 
 }
 
 export function sanitizeRigFile(input: RigFile): RigFile {
-  if (input.schemaVersion !== "hoopmotion.rig.v1") {
+  if (input.schemaVersion !== "kinerig.rig.v1" && input.schemaVersion !== "hoopmotion.rig.v1") {
     throw new Error("Unsupported rig schema");
   }
 

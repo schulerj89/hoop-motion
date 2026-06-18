@@ -26,7 +26,7 @@ interface PartialJointFrame {
   joints: Partial<Record<JointName, JointSample>>;
 }
 
-const DEFAULT_MODEL_URL = "/models/hoopbot.glb";
+const DEFAULT_MODEL_URL = "/models/posebot.glb";
 
 export function processLandmarks(
   landmarks: LandmarkFile,
@@ -42,7 +42,7 @@ export function processLandmarks(
   const lastFrame = smoothed.at(-1);
 
   return {
-    schemaVersion: "hoopmotion.animation.v1",
+    schemaVersion: "kinerig.animation.v1",
     sourceVideo: landmarks.sourceVideo,
     generatedAt: new Date().toISOString(),
     synthetic: Boolean(landmarks.synthetic),
@@ -72,7 +72,7 @@ export function buildReport(
   const missingJointCount = frames.reduce((sum, frame) => sum + frame.missingJointCount, 0);
 
   return {
-    schemaVersion: "hoopmotion.report.v1",
+    schemaVersion: "kinerig.report.v1",
     sourceVideo: landmarks.sourceVideo,
     generatedAt: new Date().toISOString(),
     synthetic: Boolean(landmarks.synthetic),

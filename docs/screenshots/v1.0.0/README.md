@@ -1,4 +1,4 @@
-# HoopMotion 1.0.0 Screenshots
+# KineRig Studio 1.0.0 Screenshots
 
 - `rig-builder-auto-rig.png`: Rig Builder with auto-generated skeleton markers on the sample GLB.
 - `viewer-fixture-jump-shot.png`: Motion viewer regression screenshot.

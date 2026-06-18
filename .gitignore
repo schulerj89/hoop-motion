@@ -13,16 +13,20 @@ data/input/*.m4v
 data/input/*.avi
 models/*.task
 
-# Keep selected real-footage example runs, but not bulky extracted screenshots.
+# Keep selected neutral fixture runs, but not bulky extracted screenshots.
 public/runs/*
-!public/runs/pexels-5586522/
-public/runs/pexels-5586522/*
-!public/runs/pexels-5586522/animation.json
-!public/runs/pexels-5586522/report.json
-!public/runs/pexels-5192069/
-public/runs/pexels-5192069/*
-!public/runs/pexels-5192069/animation.json
-!public/runs/pexels-5192069/report.json
+!public/runs/fixture-reach/
+public/runs/fixture-reach/*
+!public/runs/fixture-reach/animation.json
+!public/runs/fixture-reach/report.json
+!public/runs/fixture-wave/
+public/runs/fixture-wave/*
+!public/runs/fixture-wave/animation.json
+!public/runs/fixture-wave/report.json
+!public/runs/fixture-side-step/
+public/runs/fixture-side-step/*
+!public/runs/fixture-side-step/animation.json
+!public/runs/fixture-side-step/report.json
 
 # Keep versioned proof screenshots and videos under docs/screenshots.
 test-results/

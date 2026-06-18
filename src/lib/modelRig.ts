@@ -29,7 +29,7 @@ export function createSkeletonDebugLine(): LineSegments {
     depthTest: false
   });
   const line = new LineSegments(geometry, material);
-  line.name = "HoopMotion_DebugSkeleton";
+  line.name = "KineRig_DebugSkeleton";
   line.renderOrder = 20;
   return line;
 }
@@ -72,13 +72,6 @@ export function applyAnimationFrame(
     jointMesh.position.copy(tempStart);
     const scale = joint === "Head" ? 0.18 : joint.includes("Foot") ? 0.08 : 0.095;
     jointMesh.scale.setScalar(scale);
-  }
-
-  const ball = modelRoot.getObjectByName("Prop_Ball");
-  if (ball) {
-    setVec(tempStart, frame.joints.RightWrist.position);
-    ball.position.set(tempStart.x + 0.12, Math.max(0.12, tempStart.y - 0.05), tempStart.z + 0.08);
-    ball.scale.setScalar(0.18);
   }
 
   updateSkeletonDebug(debugLine, frame, debugVisible);

@@ -64,7 +64,7 @@ def draw_pose(frame, landmarks: list[dict[str, float]] | None):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Extract pose landmarks from a basketball MP4 with MediaPipe.")
+    parser = argparse.ArgumentParser(description="Extract single-person pose landmarks from an MP4 with MediaPipe.")
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--screenshots", required=True)
@@ -146,7 +146,7 @@ def main() -> None:
 
     cap.release()
     payload = {
-        "schemaVersion": "hoopmotion.landmarks.v1",
+        "schemaVersion": "kinerig.landmarks.v1",
         "sourceVideo": args.input,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "synthetic": False,

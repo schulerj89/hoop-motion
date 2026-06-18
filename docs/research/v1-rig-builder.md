@@ -1,4 +1,4 @@
-# HoopMotion 1.0 Rig Builder Research Notes
+# KineRig Studio 1.0 Rig Builder Research Notes
 
 The v1 Rig Builder remains a web app because the current Three.js stack already supports the MVP workflow:
 
@@ -7,7 +7,7 @@ The v1 Rig Builder remains a web app because the current Three.js stack already 
 - `TransformControls` supports direct marker adjustment.
 - JSON sidecars can be exported without native packaging.
 
-The main product boundary is skinning. Clicked dots define a retarget profile and rest-pose markers; they do not create glTF `JOINTS_0`, `WEIGHTS_0`, joints, or inverse bind matrices for an unrigged mesh. True auto-rigging and skin weights should be handled by Mixamo, AccuRIG, or Blender before HoopMotion retargeting.
+The main product boundary is skinning. Clicked dots define a retarget profile and rest-pose markers; they do not create glTF `JOINTS_0`, `WEIGHTS_0`, joints, or inverse bind matrices for an unrigged mesh. True auto-rigging and skin weights should be handled by Mixamo, AccuRIG, or Blender before KineRig Studio retargeting.
 
 Sources:
 
