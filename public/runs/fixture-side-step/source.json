@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "kinerig.motion-source.v1",
+  "generatedAt": "2026-06-18T00:00:00.000Z",
+  "runName": "fixture-side-step",
+  "provider": "synthetic",
+  "query": "side step",
+  "localVideoPath": "data/input/fixture_side_step.mp4",
+  "attributionText": "Synthetic KineRig fixture",
+  "licenseName": "Project fixture",
+  "licenseUrl": "https://github.com/schulerj89/hoop-motion",
+  "durationSec": 3,
+  "notes": [
+    "Generated locally for repeatable smoke testing.",
+    "Not sourced from stock footage."
+  ]
+}

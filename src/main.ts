@@ -20,11 +20,20 @@ import { applyAnimationFrame, createSkeletonDebugLine } from "./lib/modelRig";
 import { createRetargetPackage, sanitizeRigFile } from "./lib/rigAuthoring";
 import { RigBuilderScene } from "./lib/rigBuilderScene";
 import { JOINT_NAMES } from "./lib/skeleton";
-import type { AnimationFile, JointName, RigFile, ValidationReport } from "./lib/types";
+import type {
+  AnimationFile,
+  JointName,
+  MotionRunIndexEntry,
+  MotionRunIndexFile,
+  MotionSourceMetadata,
+  RigFile,
+  ValidationReport
+} from "./lib/types";
 
 declare global {
   interface Window {
     __KINERIG_READY?: boolean;
+    __KINERIG_LIBRARY_READY?: boolean;
     __KINERIG_RIG_READY?: boolean;
     __KINERIG_RIG_PREVIEW_READY?: boolean;
     __KINERIG_RIG_TEST_API?: {
@@ -57,8 +66,9 @@ app.innerHTML = `
           <button id="rigMode" type="button">Rig Builder</button>
         </div>
         <div class="run-picker">
-          <input id="runInput" type="text" value="fixture-reach" aria-label="Run name" />
+          <input id="runInput" type="text" value="fixture-reach" list="runOptions" aria-label="Run name" />
           <button id="loadRun" type="button">Load</button>
+          <datalist id="runOptions"></datalist>
         </div>
         <div class="controls">
           <button id="playPause" type="button">Play</button>
@@ -82,6 +92,10 @@ app.innerHTML = `
       <section id="motionPanel">
         <h2>Run Report</h2>
         <dl id="reportList"></dl>
+        <h2>Motion Source</h2>
+        <dl id="sourceList"></dl>
+        <h2>Motion Library</h2>
+        <div id="runLibrary" class="run-library"></div>
       </section>
       <section id="rigPanel" class="rig-panel" hidden>
         <h2>Rig Builder</h2>
@@ -103,7 +117,7 @@ app.innerHTML = `
           <option value="scale">Scale</option>
         </select>
         <div class="rig-row">
-          <input id="rigPreviewRun" type="text" value="fixture-reach" aria-label="Motion run" />
+          <input id="rigPreviewRun" type="text" value="fixture-reach" list="runOptions" aria-label="Motion run" />
           <button id="previewRigMotion" type="button" data-tooltip="Load a motion run and animate the authored skeleton overlay on this model. This previews retarget fit; mesh deformation still requires a skinned GLB.">Preview Motion</button>
         </div>
         <div id="rigPreviewLabel" class="rig-model-transform">No motion preview loaded</div>
@@ -131,6 +145,7 @@ const stage = document.querySelector<HTMLDivElement>("#stage")!;
 const motionModeButton = document.querySelector<HTMLButtonElement>("#motionMode")!;
 const rigModeButton = document.querySelector<HTMLButtonElement>("#rigMode")!;
 const runInput = document.querySelector<HTMLInputElement>("#runInput")!;
+const runOptions = document.querySelector<HTMLDataListElement>("#runOptions")!;
 const runLabel = document.querySelector<HTMLParagraphElement>("#runLabel")!;
 const loadRunButton = document.querySelector<HTMLButtonElement>("#loadRun")!;
 const playPauseButton = document.querySelector<HTMLButtonElement>("#playPause")!;
@@ -140,6 +155,8 @@ const speedSelect = document.querySelector<HTMLSelectElement>("#speed")!;
 const timeline = document.querySelector<HTMLInputElement>("#timeline")!;
 const timeLabel = document.querySelector<HTMLSpanElement>("#timeLabel")!;
 const reportList = document.querySelector<HTMLElement>("#reportList")!;
+const sourceList = document.querySelector<HTMLElement>("#sourceList")!;
+const runLibrary = document.querySelector<HTMLDivElement>("#runLibrary")!;
 const motionPanel = document.querySelector<HTMLElement>("#motionPanel")!;
 const rigPanel = document.querySelector<HTMLElement>("#rigPanel")!;
 const rigModelUrl = document.querySelector<HTMLInputElement>("#rigModelUrl")!;
@@ -204,6 +221,7 @@ let mode: "motion" | "rig" = new URLSearchParams(window.location.search).get("mo
 let animation: AnimationFile | undefined;
 let rigPreviewAnimation: AnimationFile | undefined;
 let report: ValidationReport | undefined;
+let runIndex: MotionRunIndexFile | undefined;
 let frameIndex = 0;
 let playing = true;
 let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-reach";
@@ -221,6 +239,9 @@ window.__KINERIG_RIG_TEST_API = {
 
 runInput.value = runName;
 renderJointButtons();
+loadRunIndex().catch(() => {
+  runLibrary.innerHTML = `<p class="muted">No run index found</p>`;
+});
 setMode(mode);
 if (mode === "rig") {
   loadRigAuthoringModel(rigModelUrl.value).catch(showError);
@@ -363,6 +384,7 @@ async function loadRun(nextRunName: string): Promise<void> {
   runName = nextRunName;
   runLabel.textContent = runName;
   reportList.innerHTML = "";
+  sourceList.innerHTML = "";
 
   const animationResponse = await fetch(`/runs/${runName}/animation.json`, { cache: "no-store" });
   if (!animationResponse.ok) {
@@ -385,6 +407,7 @@ async function loadRun(nextRunName: string): Promise<void> {
   playing = true;
   playPauseButton.textContent = "Pause";
   renderReport(report);
+  renderSource(runName, report).catch(showError);
   renderCurrentFrame();
   loading = false;
   window.__KINERIG_READY = true;
@@ -439,6 +462,20 @@ async function loadRigPreviewRun(nextRunName: string, shouldPlay: boolean): Prom
   updateRigPanel(rigBuilder.getRig());
   renderCurrentRigFrame();
   window.__KINERIG_RIG_PREVIEW_READY = true;
+}
+
+async function loadRunIndex(): Promise<void> {
+  window.__KINERIG_LIBRARY_READY = false;
+  const response = await fetch("/runs/index.json", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error("No run index found");
+  }
+  runIndex = await response.json() as MotionRunIndexFile;
+  runOptions.innerHTML = runIndex.runs
+    .map((run) => `<option value="${escapeHtml(run.name)}"></option>`)
+    .join("");
+  renderRunLibrary(runIndex.runs);
+  window.__KINERIG_LIBRARY_READY = true;
 }
 
 function render(): void {
@@ -496,6 +533,40 @@ function renderReport(nextReport: ValidationReport): void {
   reportList.innerHTML = rows
     .map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`)
     .join("");
+}
+
+async function renderSource(nextRunName: string, nextReport: ValidationReport): Promise<void> {
+  const response = await fetch(`/runs/${nextRunName}/source.json`, { cache: "no-store" });
+  const source = response.ok ? await response.json() as MotionSourceMetadata : undefined;
+  const rows: Array<[string, string]> = [
+    ["Provider", source?.provider ?? (nextReport.synthetic ? "synthetic" : "local")],
+    ["License", source?.licenseUrl ? link(source.licenseName, source.licenseUrl) : source?.licenseName ?? "Local clip"],
+    ["Credit", source?.attributionText ?? "Local source"],
+    ["Source", source?.sourceUrl ? link("Open", source.sourceUrl) : source?.localVideoPath ?? nextReport.sourceVideo]
+  ];
+  sourceList.innerHTML = rows
+    .map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`)
+    .join("");
+}
+
+function renderRunLibrary(runs: MotionRunIndexEntry[]): void {
+  runLibrary.innerHTML = "";
+  for (const run of runs) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.run = run.name;
+    button.dataset.tooltip = run.attributionText || run.sourceVideo || run.name;
+    button.innerHTML = `
+      <span>${escapeHtml(run.name)}</span>
+      <small>${escapeHtml(run.provider)} ${formatPercent(run.detectionSuccessRate)}</small>
+    `;
+    button.addEventListener("click", () => {
+      runInput.value = run.name;
+      setMode("motion");
+      loadRun(run.name).catch(showError);
+    });
+    runLibrary.appendChild(button);
+  }
 }
 
 function resize(): void {
@@ -599,4 +670,32 @@ function downloadJson(filename: string, payload: unknown): void {
   link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function formatPercent(value: number | undefined): string {
+  return typeof value === "number" ? `${(value * 100).toFixed(0)}%` : "";
+}
+
+function link(label: string, href: string): string {
+  const safeHref = href.startsWith("http://") || href.startsWith("https://") ? href : "#";
+  return `<a href="${escapeHtml(safeHref)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case "\"":
+        return "&quot;";
+      case "'":
+        return "&#039;";
+      default:
+        return char;
+    }
+  });
 }

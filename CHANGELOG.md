@@ -2,6 +2,19 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.2.0 - 2026-06-18
+
+### Added
+
+- Added a royalty-free stock video acquisition workflow for searching Pexels and Pixabay, caching provider search responses, downloading a selected MP4, and optionally running the existing MediaPipe motion pipeline.
+- Added `kinerig.motion-source.v1` metadata and `public/runs/index.json` so generated animations keep provider, source URL, license, attribution, and validation summary data.
+- Added a Motion Library and Motion Source panel in the Three.js app so processed runs can be selected and traced before applying them to an authored rig.
+- Added unit coverage for stock-video query planning and provider rendition selection.
+
+### Changed
+
+- Promoted the app to `1.2.0` because the workflow now covers motion acquisition plus rig-preview/export, not only local clip processing.
+
 ## 1.1.3 - 2026-06-18
 
 ### Added

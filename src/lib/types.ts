@@ -124,3 +124,57 @@ export interface RetargetPackageFile {
   rig: RigFile;
   animation?: AnimationFile;
 }
+
+export type MotionSourceProvider = "pexels" | "pixabay" | "local" | "synthetic";
+
+export interface MotionSourceFile {
+  url?: string;
+  width?: number;
+  height?: number;
+  sizeBytes?: number;
+  fps?: number;
+  fileType?: string;
+}
+
+export interface MotionSourceMetadata {
+  schemaVersion: "kinerig.motion-source.v1";
+  generatedAt: string;
+  runName: string;
+  provider: MotionSourceProvider;
+  providerId?: string;
+  query?: string;
+  sourceUrl?: string;
+  downloadedFrom?: string;
+  localVideoPath: string;
+  contributorName?: string;
+  contributorUrl?: string;
+  attributionText?: string;
+  licenseName: string;
+  licenseUrl: string;
+  providerGuidelinesUrl?: string;
+  durationSec?: number;
+  width?: number;
+  height?: number;
+  selectedFile?: MotionSourceFile;
+  notes?: string[];
+}
+
+export interface MotionRunIndexEntry {
+  name: string;
+  sourceVideo?: string;
+  provider: MotionSourceProvider;
+  sourceUrl?: string;
+  contributorName?: string;
+  attributionText?: string;
+  licenseName?: string;
+  durationMs?: number;
+  framesProcessed?: number;
+  detectionSuccessRate?: number;
+  averageConfidence?: number;
+}
+
+export interface MotionRunIndexFile {
+  schemaVersion: "kinerig.run-index.v1";
+  generatedAt: string;
+  runs: MotionRunIndexEntry[];
+}

@@ -146,7 +146,11 @@ h1 {
 
 h2 {
   font-size: 16px;
-  margin-bottom: 14px;
+  margin: 20px 0 14px;
+}
+
+h2:first-child {
+  margin-top: 0;
 }
 
 .brand p {
@@ -356,6 +360,50 @@ dt {
 dd {
   margin: 0;
   color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+dd a {
+  color: #7dffcf;
+}
+
+.muted {
+  margin: 0;
+  color: #aeb8bd;
+  font-size: 12px;
+}
+
+.run-library {
+  display: grid;
+  gap: 8px;
+}
+
+.run-library button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border-color: #384047;
+  background: #1a2025;
+  text-align: left;
+}
+
+.run-library button:hover {
+  background: #236f5a;
+}
+
+.run-library span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-library small {
+  color: #aeb8bd;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 

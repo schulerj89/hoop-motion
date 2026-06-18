@@ -65,6 +65,47 @@ npm run dev
 
 Open [http://127.0.0.1:5173/?run=my-motion](http://127.0.0.1:5173/?run=my-motion).
 
+## Acquire Royalty-Free Motion Clips
+
+KineRig Studio can search royalty-free stock video APIs, download one selected MP4, and process it through the same 18-joint motion pipeline used by local clips.
+
+Supported providers:
+
+- Pexels videos via `PEXELS_API_KEY`.
+- Pixabay videos via `PIXABAY_API_KEY`.
+
+Place credentials in `C:\Users\joshs\Projects\.env`, `C:\Users\joshs\Projects\kinerig.env`, or a local `.env` file:
+
+```powershell
+PEXELS_API_KEY=your_key
+PIXABAY_API_KEY=your_key
+```
+
+Search without downloading:
+
+```powershell
+npx tsx scripts/acquireMotion.ts --provider pexels --query "full body person walking" --limit 5
+```
+
+Download the top candidate and process it:
+
+```powershell
+npx tsx scripts/acquireMotion.ts --provider pexels --query "full body person walking" --limit 5 --download --process --run-name stock-walk --max-frames 180
+```
+
+The workflow writes:
+
+- `data/search/<query>/candidates.json`
+- `data/input/<run-name>.mp4`
+- `public/runs/<run-name>/animation.json`
+- `public/runs/<run-name>/report.json`
+- `public/runs/<run-name>/source.json`
+- `public/runs/index.json`
+
+Open the app, select the run from Motion Library, then use Rig Builder `Preview Motion` or `Export Package` to pair that animation with the authored skeleton profile.
+
+Do not use this as a bulk downloader. Review each source page and license metadata before publishing commercial work, especially clips with recognizable people, brands, minors, crowds, or sensitive contexts.
+
 ## Build A Skeleton Profile
 
 Start the app:

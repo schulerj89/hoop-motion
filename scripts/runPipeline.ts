@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { writeProcessedMotion } from "./processMotion";
+import { updateRunIndex } from "./runIndex";
 
 interface PipelineArgs {
   input: string;
@@ -69,6 +70,7 @@ async function main(): Promise<void> {
     report: reportPath,
     modelUrl: "/models/posebot.glb"
   });
+  await updateRunIndex();
 
   console.log(`Run ready: ${runDir}`);
 }

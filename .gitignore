@@ -11,22 +11,29 @@ data/input/*.mp4
 data/input/*.mov
 data/input/*.m4v
 data/input/*.avi
+data/input/*.source.json
+data/search/
+data/cache/
 models/*.task
 
 # Keep selected neutral fixture runs, but not bulky extracted screenshots.
 public/runs/*
+!public/runs/index.json
 !public/runs/fixture-reach/
 public/runs/fixture-reach/*
 !public/runs/fixture-reach/animation.json
 !public/runs/fixture-reach/report.json
+!public/runs/fixture-reach/source.json
 !public/runs/fixture-wave/
 public/runs/fixture-wave/*
 !public/runs/fixture-wave/animation.json
 !public/runs/fixture-wave/report.json
+!public/runs/fixture-wave/source.json
 !public/runs/fixture-side-step/
 public/runs/fixture-side-step/*
 !public/runs/fixture-side-step/animation.json
 !public/runs/fixture-side-step/report.json
+!public/runs/fixture-side-step/source.json
 
 # Keep versioned proof screenshots and videos under docs/screenshots.
 test-results/

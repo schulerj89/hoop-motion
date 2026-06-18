@@ -1,7 +1,7 @@
 {
   "schemaVersion": "kinerig.report.v1",
   "sourceVideo": "data/input/fixture_side_step.mp4",
-  "generatedAt": "2026-06-18T20:32:09.595Z",
+  "generatedAt": "2026-06-18T20:52:01.052Z",
   "synthetic": true,
   "fps": 30,
   "framesProcessed": 90,
