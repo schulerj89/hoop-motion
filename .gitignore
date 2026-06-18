@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.vite/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local footage and large generated outputs stay out of git by default.
+data/input/*.mp4
+data/input/*.mov
+data/input/*.m4v
+data/input/*.avi
+models/*.task
+public/runs/
+
+# Keep versioned proof screenshots under docs/screenshots.
+test-results/
+playwright-report/

@@ -1,0 +1,43 @@
+{
+  "name": "hoop-motion",
+  "version": "0.1.0",
+  "description": "Convert short basketball videos into Three.js-playable humanoid motion.",
+  "type": "module",
+  "private": false,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1 --port 4297",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/unit",
+    "python:setup": "node scripts/setupPython.mjs",
+    "model:sample": "node scripts/createSampleModel.mjs",
+    "pose:model": "node scripts/pythonRunner.mjs scripts/download_pose_model.py",
+    "extract": "node scripts/pythonRunner.mjs scripts/extract_pose.py",
+    "process": "tsx scripts/processMotion.ts",
+    "pipeline": "tsx scripts/runPipeline.ts",
+    "fixture:jump-shot": "node scripts/pythonRunner.mjs scripts/generate_fixture_video.py --motion jump-shot --output data/input/fixture_jump_shot.mp4",
+    "fixture:dribble": "node scripts/pythonRunner.mjs scripts/generate_fixture_video.py --motion dribble --output data/input/fixture_dribble.mp4",
+    "fixture:defensive-slide": "node scripts/pythonRunner.mjs scripts/generate_fixture_video.py --motion defensive-slide --output data/input/fixture_defensive_slide.mp4",
+    "fixture": "npm run fixture:jump-shot && npm run fixture:dribble && npm run fixture:defensive-slide",
+    "process:fixture:jump-shot": "tsx scripts/runPipeline.ts --input data/input/fixture_jump_shot.mp4 --name fixture-jump-shot --synthetic-on-fail",
+    "process:fixture:dribble": "tsx scripts/runPipeline.ts --input data/input/fixture_dribble.mp4 --name fixture-dribble --synthetic-on-fail",
+    "process:fixture:defensive-slide": "tsx scripts/runPipeline.ts --input data/input/fixture_defensive_slide.mp4 --name fixture-defensive-slide --synthetic-on-fail",
+    "process:fixtures": "npm run process:fixture:jump-shot && npm run process:fixture:dribble && npm run process:fixture:defensive-slide",
+    "screenshots": "playwright test tests/smoke/viewer.spec.ts --project=chromium",
+    "smoke": "npm run python:setup && npm run model:sample && npm run fixture && npm run process:fixtures && npm run typecheck && npm run test && npm run build && npm run screenshots"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.35",
+    "three": "0.184.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.0",
+    "@types/node": "25.9.3",
+    "@types/three": "0.184.1",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3",
+    "vite": "8.0.16",
+    "vitest": "4.1.9"
+  }
+}
