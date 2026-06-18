@@ -20,7 +20,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { createAutoRigFromModel, createEmptyRig, countPlacedJoints, withJointMarker } from "./rigAuthoring";
 import { BONES, JOINT_NAMES } from "./skeleton";
-import type { JointName, RigFile, Vec3 } from "./types";
+import type { AnimationFile, AnimationFrame, JointName, RigFile, Vec3 } from "./types";
 
 const HIDDEN_POINT = new Vector3(0, -1000, 0);
 type TransformTarget = "model" | "joint";
@@ -52,6 +52,11 @@ export class RigBuilderScene {
   private onChange: (rig: RigFile) => void;
   private readonly transformHelper: Object3D;
   private readonly previousModelMatrixWorld = new Matrix4();
+  private previewAnimation?: AnimationFile;
+  private previewBaseFrame?: AnimationFrame;
+  private previewRestPositions: Partial<Record<JointName, Vec3>> = {};
+  private previewScale = 1;
+  private previewActive = false;
 
   constructor(
     scene: Scene,
@@ -103,6 +108,7 @@ export class RigBuilderScene {
   }
 
   selectJoint(joint: JointName): void {
+    this.restoreRigPose();
     this.selectedJoint = joint;
     this.transformTarget = "joint";
     this.refreshMarkerMaterials();
@@ -111,12 +117,14 @@ export class RigBuilderScene {
   }
 
   selectJointTarget(): void {
+    this.restoreRigPose();
     this.transformTarget = "joint";
     this.attachSelectedMarker();
     this.onChange(this.rig);
   }
 
   selectModel(): void {
+    this.restoreRigPose();
     this.transformTarget = "model";
     this.transformControls.attach(this.modelRoot);
     this.captureModelMatrix();
@@ -145,7 +153,13 @@ export class RigBuilderScene {
     return toVec3(this.modelRoot.position);
   }
 
+  getMarkerPosition(joint: JointName): Vec3 | undefined {
+    const marker = this.getMarker(joint);
+    return marker ? toVec3(marker.position) : undefined;
+  }
+
   translateModel(offset: Vec3): void {
+    this.restoreRigPose();
     this.selectModel();
     this.modelRoot.position.add(new Vector3(offset[0], offset[1], offset[2]));
     this.syncModelTransform();
@@ -164,6 +178,7 @@ export class RigBuilderScene {
   }
 
   applyRig(rig: RigFile): void {
+    this.clearPreviewState();
     this.rig = rig;
     this.markerGroup.clear();
     for (const joint of JOINT_NAMES) {
@@ -182,7 +197,71 @@ export class RigBuilderScene {
     this.onChange(this.rig);
   }
 
+  setPreviewAnimation(animation: AnimationFile): void {
+    this.restoreRigPose();
+    const baseFrame = animation.frames[0];
+    if (!baseFrame) {
+      this.clearPreviewState();
+      return;
+    }
+
+    this.previewAnimation = animation;
+    this.previewBaseFrame = baseFrame;
+    this.previewRestPositions = this.captureRigRestPositions();
+    this.previewScale = estimatePreviewScale(this.previewRestPositions, baseFrame);
+    this.previewActive = true;
+    this.transformControls.detach();
+    this.transformHelper.visible = false;
+    this.applyPreviewFrame(baseFrame);
+  }
+
+  hasPreviewAnimation(): boolean {
+    return this.previewActive && Boolean(this.previewAnimation && this.previewBaseFrame);
+  }
+
+  applyPreviewFrame(frame: AnimationFrame): void {
+    if (!this.previewActive || !this.previewBaseFrame) {
+      return;
+    }
+
+    for (const joint of JOINT_NAMES) {
+      const marker = this.getMarker(joint);
+      const rest = this.previewRestPositions[joint];
+      const baseSample = this.previewBaseFrame.joints[joint];
+      const frameSample = frame.joints[joint];
+      if (!marker || !rest || !baseSample || !frameSample) {
+        continue;
+      }
+
+      const base = baseSample.position;
+      const current = frameSample.position;
+      marker.position.set(
+        rest[0] + (current[0] - base[0]) * this.previewScale,
+        rest[1] + (current[1] - base[1]) * this.previewScale,
+        rest[2] + (current[2] - base[2]) * this.previewScale
+      );
+    }
+    this.updateRigLineFromMarkers();
+  }
+
+  restoreRigPose(): void {
+    if (!this.previewActive) {
+      return;
+    }
+
+    for (const joint of JOINT_NAMES) {
+      const rigMarker = this.rig.joints[joint];
+      const marker = this.getMarker(joint);
+      if (rigMarker && marker) {
+        marker.position.set(rigMarker.position[0], rigMarker.position[1], rigMarker.position[2]);
+      }
+    }
+    this.clearPreviewState();
+    this.updateRigLine();
+  }
+
   private replaceModel(model: Object3D): void {
+    this.clearPreviewState();
     this.transformControls.detach();
     this.scene.remove(this.modelRoot);
     this.modelRoot = new Group();
@@ -214,6 +293,7 @@ export class RigBuilderScene {
     if (!modelHit) {
       return;
     }
+    this.restoreRigPose();
     this.rig = withJointMarker(this.rig, this.selectedJoint, toVec3(modelHit.point), "click");
     const marker = this.createOrUpdateMarker(this.selectedJoint, toVec3(modelHit.point));
     this.transformControls.attach(marker);
@@ -238,6 +318,11 @@ export class RigBuilderScene {
   }
 
   private syncAttachedMarker(): void {
+    if (this.previewActive) {
+      this.restoreRigPose();
+    } else {
+      this.clearPreviewState();
+    }
     const object = this.transformControls.object;
     const joint = object?.userData.joint as JointName | undefined;
     if (!object || !joint) {
@@ -249,6 +334,11 @@ export class RigBuilderScene {
   }
 
   private syncModelTransform(): void {
+    if (this.previewActive) {
+      this.restoreRigPose();
+    } else {
+      this.clearPreviewState();
+    }
     const previous = this.previousModelMatrixWorld.clone();
     this.modelRoot.updateMatrixWorld(true);
     const next = this.modelRoot.matrixWorld.clone();
@@ -340,6 +430,40 @@ export class RigBuilderScene {
     position.needsUpdate = true;
     this.rigLine.geometry.computeBoundingSphere();
   }
+
+  private updateRigLineFromMarkers(): void {
+    const position = this.rigLine.geometry.getAttribute("position") as BufferAttribute;
+    for (let index = 0; index < BONES.length; index += 1) {
+      const bone = BONES[index];
+      const start = this.getMarker(bone.from)?.position;
+      const end = this.getMarker(bone.to)?.position;
+      const a = start ?? HIDDEN_POINT;
+      const b = end ?? HIDDEN_POINT;
+      position.setXYZ(index * 2, a.x, a.y, a.z);
+      position.setXYZ(index * 2 + 1, b.x, b.y, b.z);
+    }
+    position.needsUpdate = true;
+    this.rigLine.geometry.computeBoundingSphere();
+  }
+
+  private captureRigRestPositions(): Partial<Record<JointName, Vec3>> {
+    const positions: Partial<Record<JointName, Vec3>> = {};
+    for (const joint of JOINT_NAMES) {
+      const marker = this.rig.joints[joint];
+      if (marker) {
+        positions[joint] = [...marker.position];
+      }
+    }
+    return positions;
+  }
+
+  private clearPreviewState(): void {
+    this.previewAnimation = undefined;
+    this.previewBaseFrame = undefined;
+    this.previewRestPositions = {};
+    this.previewScale = 1;
+    this.previewActive = false;
+  }
 }
 
 function createRigLine(): LineSegments {
@@ -369,4 +493,26 @@ function collectMeshes(root: Object3D): Object3D[] {
 
 function toVec3(vector: Vector3): Vec3 {
   return [vector.x, vector.y, vector.z];
+}
+
+function estimatePreviewScale(rest: Partial<Record<JointName, Vec3>>, frame: AnimationFrame): number {
+  const restHeight = estimateHeight(Object.values(rest).filter(Boolean) as Vec3[]);
+  const frameHeight = estimateHeight(JOINT_NAMES.map((joint) => frame.joints[joint].position));
+  if (restHeight <= 0 || frameHeight <= 0) {
+    return 1;
+  }
+  return Math.min(3, Math.max(0.25, restHeight / frameHeight));
+}
+
+function estimateHeight(positions: Vec3[]): number {
+  if (positions.length === 0) {
+    return 0;
+  }
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const position of positions) {
+    minY = Math.min(minY, position[1]);
+    maxY = Math.max(maxY, position[1]);
+  }
+  return maxY - minY;
 }

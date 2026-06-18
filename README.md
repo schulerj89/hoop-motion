@@ -83,10 +83,11 @@ Rig Builder supports:
 - Auto A/T-pose marker fill that preserves clicked or imported dots.
 - Per-joint marker selection and click placement on the model.
 - Transform-handle marker adjustment.
+- Motion-run preview that animates the authored skeleton overlay on the loaded model.
 - `rig.json` import/export.
 - Retarget package export.
 
-Clicked markers define a KineRig retarget sidecar. They do not create skin weights for an unrigged mesh. If a character is not rigged, use Mixamo, AccuRIG, or Blender first, then use KineRig Studio to author and validate the retarget profile.
+Clicked markers define a KineRig retarget sidecar. The preview connects those markers to motion JSON so you can validate whether the skeleton profile fits the character. It does not create skin weights for an unrigged mesh. If a character is not rigged, use Mixamo, AccuRIG, or Blender first, then use KineRig Studio to author and validate the retarget profile.
 
 ## Neutral Fixtures
 

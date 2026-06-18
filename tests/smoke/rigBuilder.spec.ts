@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -14,8 +14,8 @@ test("auto-builds and exports a rig profile", async ({ page }) => {
   await page.mouse.move(24, 24);
   await page.waitForTimeout(1_500);
 
-  const outputDir = path.resolve("docs/screenshots/v1.1.2");
-  const artifactDir = path.resolve("docs/artifacts/v1.1.2");
+  const outputDir = path.resolve("docs/screenshots/v1.1.3");
+  const artifactDir = path.resolve("docs/artifacts/v1.1.3");
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(artifactDir, { recursive: true });
   await page.screenshot({
@@ -26,6 +26,25 @@ test("auto-builds and exports a rig profile", async ({ page }) => {
   await page.waitForTimeout(250);
   await page.screenshot({
     path: path.join(outputDir, "rig-builder-auto-tooltip.png"),
+    fullPage: true
+  });
+
+  await page.locator("#previewRigMotion").click();
+  await page.waitForFunction(() => window.__KINERIG_RIG_PREVIEW_READY === true);
+  await expect(page.locator("#rigPreviewLabel")).toContainText("Previewing fixture-reach");
+  const beforePreview = await getMarkerPosition(page, "LeftWrist");
+  await page.waitForTimeout(1_000);
+  const afterPreview = await getMarkerPosition(page, "LeftWrist");
+  expect(distance(beforePreview, afterPreview)).toBeGreaterThan(0.01);
+  await page.locator("#timeline").evaluate((input) => {
+    const timeline = input as HTMLInputElement;
+    timeline.value = "84";
+    timeline.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator("#previewRigMotion").hover();
+  await page.waitForTimeout(250);
+  await page.screenshot({
+    path: path.join(outputDir, "rig-builder-motion-preview.png"),
     fullPage: true
   });
 
@@ -73,7 +92,7 @@ test("imports and moves a GLB model root", async ({ page }) => {
   await expect(page.locator("#modelTransformLabel")).toContainText(`X ${after[0].toFixed(2)}`);
   await page.waitForTimeout(1_000);
 
-  const outputDir = path.resolve("docs/screenshots/v1.1.2");
+  const outputDir = path.resolve("docs/screenshots/v1.1.3");
   mkdirSync(outputDir, { recursive: true });
   await page.screenshot({
     path: path.join(outputDir, "rig-builder-imported-model-moved.png"),
@@ -90,4 +109,21 @@ function findLatestDownloadGlb(): string | undefined {
     .filter((fileName) => fileName.toLowerCase().endsWith(".glb"))
     .map((fileName) => path.join(downloadsDir, fileName))
     .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)[0];
+}
+
+async function getMarkerPosition(page: Page, joint: string): Promise<[number, number, number]> {
+  const position = await page.evaluate((targetJoint) => {
+    const api = (window as unknown as {
+      __KINERIG_RIG_TEST_API: { getMarkerPosition: (joint: string) => [number, number, number] | undefined };
+    }).__KINERIG_RIG_TEST_API;
+    return api.getMarkerPosition(targetJoint);
+  }, joint);
+  if (!position) {
+    throw new Error(`No marker position for ${joint}`);
+  }
+  return position;
+}
+
+function distance(left: [number, number, number], right: [number, number, number]): number {
+  return Math.hypot(left[0] - right[0], left[1] - right[1], left[2] - right[2]);
 }

@@ -2,6 +2,17 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.1.3 - 2026-06-18
+
+### Added
+
+- Added Rig Builder motion preview for loading a processed motion run and animating the authored skeleton overlay on the current model.
+- Added a versioned Playwright smoke check that proves a rig marker moves during overlay playback and captures a `rig-builder-motion-preview.png` artifact.
+
+### Fixed
+
+- Kept rig export data tied to the authored rest-pose markers while motion preview temporarily animates only the visible dots and bone lines.
+
 ## 1.1.2 - 2026-06-18
 
 ### Fixed

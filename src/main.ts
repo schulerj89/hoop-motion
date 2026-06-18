@@ -26,7 +26,9 @@ declare global {
   interface Window {
     __KINERIG_READY?: boolean;
     __KINERIG_RIG_READY?: boolean;
+    __KINERIG_RIG_PREVIEW_READY?: boolean;
     __KINERIG_RIG_TEST_API?: {
+      getMarkerPosition: (joint: JointName) => [number, number, number] | undefined;
       getModelPosition: () => [number, number, number];
       getTransformTarget: () => string;
       translateModel: (offset: [number, number, number]) => void;
@@ -100,6 +102,11 @@ app.innerHTML = `
           <option value="rotate">Rotate</option>
           <option value="scale">Scale</option>
         </select>
+        <div class="rig-row">
+          <input id="rigPreviewRun" type="text" value="fixture-reach" aria-label="Motion run" />
+          <button id="previewRigMotion" type="button" data-tooltip="Load a motion run and animate the authored skeleton overlay on this model. This previews retarget fit; mesh deformation still requires a skinned GLB.">Preview Motion</button>
+        </div>
+        <div id="rigPreviewLabel" class="rig-model-transform">No motion preview loaded</div>
         <div class="rig-actions">
           <button id="autoRig" type="button" data-tooltip="Fill missing joint dots from the model bounds. Clicked or imported dots stay where you placed them.">Auto A/T</button>
           <button id="exportRig" type="button" data-tooltip="Download the current skeleton marker profile as rig JSON.">Export Rig</button>
@@ -141,6 +148,9 @@ const rigModelFile = document.querySelector<HTMLInputElement>("#rigModelFile")!;
 const moveModelButton = document.querySelector<HTMLButtonElement>("#moveModel")!;
 const placeJointsButton = document.querySelector<HTMLButtonElement>("#placeJoints")!;
 const transformModeSelect = document.querySelector<HTMLSelectElement>("#transformMode")!;
+const rigPreviewRunInput = document.querySelector<HTMLInputElement>("#rigPreviewRun")!;
+const previewRigMotionButton = document.querySelector<HTMLButtonElement>("#previewRigMotion")!;
+const rigPreviewLabel = document.querySelector<HTMLDivElement>("#rigPreviewLabel")!;
 const autoRigButton = document.querySelector<HTMLButtonElement>("#autoRig")!;
 const exportRigButton = document.querySelector<HTMLButtonElement>("#exportRig")!;
 const exportPackageButton = document.querySelector<HTMLButtonElement>("#exportPackage")!;
@@ -192,6 +202,7 @@ scene.add(debugLine);
 const clock = new Clock();
 let mode: "motion" | "rig" = new URLSearchParams(window.location.search).get("mode") === "rig" ? "rig" : "motion";
 let animation: AnimationFile | undefined;
+let rigPreviewAnimation: AnimationFile | undefined;
 let report: ValidationReport | undefined;
 let frameIndex = 0;
 let playing = true;
@@ -199,6 +210,7 @@ let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture
 let loading = false;
 const rigBuilder = new RigBuilderScene(scene, camera, renderer, stage, updateRigPanel);
 window.__KINERIG_RIG_TEST_API = {
+  getMarkerPosition: (joint) => rigBuilder.getMarkerPosition(joint),
   getModelPosition: () => rigBuilder.getModelPosition(),
   getTransformTarget: () => rigBuilder.getTransformTarget(),
   translateModel: (offset) => {
@@ -242,14 +254,22 @@ resetButton.addEventListener("click", () => {
   frameIndex = 0;
   playing = false;
   playPauseButton.textContent = "Play";
-  renderCurrentFrame();
+  if (mode === "rig") {
+    renderCurrentRigFrame();
+  } else {
+    renderCurrentFrame();
+  }
 });
 
 timeline.addEventListener("input", () => {
   frameIndex = Number(timeline.value);
   playing = false;
   playPauseButton.textContent = "Play";
-  renderCurrentFrame();
+  if (mode === "rig") {
+    renderCurrentRigFrame();
+  } else {
+    renderCurrentFrame();
+  }
 });
 
 loadRigModelButton.addEventListener("click", () => {
@@ -275,12 +295,14 @@ rigModelFile.addEventListener("change", () => {
 });
 
 moveModelButton.addEventListener("click", () => {
+  markRigPreviewStopped("Motion preview stopped after switching to model transform.");
   rigBuilder.selectModel();
   updateRigPanel(rigBuilder.getRig());
   renderCurrentRigFrame();
 });
 
 placeJointsButton.addEventListener("click", () => {
+  markRigPreviewStopped("Motion preview stopped for joint editing.");
   rigBuilder.selectJointTarget();
   updateRigPanel(rigBuilder.getRig());
   renderCurrentRigFrame();
@@ -291,7 +313,14 @@ transformModeSelect.addEventListener("change", () => {
   updateRigPanel(rigBuilder.getRig());
 });
 
+previewRigMotionButton.addEventListener("click", () => {
+  const nextRun = rigPreviewRunInput.value.trim() || "fixture-reach";
+  setMode("rig");
+  loadRigPreviewRun(nextRun, true).catch(showError);
+});
+
 autoRigButton.addEventListener("click", () => {
+  markRigPreviewStopped("Motion preview reset after auto-fill.");
   rigBuilder.autoRig();
   renderCurrentRigFrame();
 });
@@ -301,7 +330,10 @@ exportRigButton.addEventListener("click", () => {
 });
 
 exportPackageButton.addEventListener("click", () => {
-  downloadJson(`${rigBuilder.getRig().name}-retarget-package.json`, createRetargetPackage(rigBuilder.getRig(), animation));
+  downloadJson(
+    `${rigBuilder.getRig().name}-retarget-package.json`,
+    createRetargetPackage(rigBuilder.getRig(), rigPreviewAnimation ?? animation)
+  );
 });
 
 importRigInput.addEventListener("change", () => {
@@ -311,6 +343,7 @@ importRigInput.addEventListener("change", () => {
   }
   file.text()
     .then((text) => {
+      markRigPreviewStopped("Motion preview reset after rig import.");
       rigBuilder.applyRig(sanitizeRigFile(JSON.parse(text) as RigFile));
       renderCurrentRigFrame();
     })
@@ -369,11 +402,43 @@ async function loadRigAuthoringModel(modelUrl: string): Promise<void> {
   scene.add(modelRoot);
   debugLine.visible = false;
   await rigBuilder.loadModelFromUrl(modelUrl);
+  clearRigPreview("No motion preview loaded");
   rigBuilder.setVisible(true);
   updateRigPanel(rigBuilder.getRig());
   renderCurrentRigFrame();
   loading = false;
   window.__KINERIG_RIG_READY = true;
+}
+
+async function loadRigPreviewRun(nextRunName: string, shouldPlay: boolean): Promise<void> {
+  window.__KINERIG_RIG_PREVIEW_READY = false;
+  rigPreviewLabel.textContent = `Loading ${nextRunName}`;
+  if (window.__KINERIG_RIG_READY !== true) {
+    await loadRigAuthoringModel(rigModelUrl.value);
+  }
+
+  const animationResponse = await fetch(`/runs/${nextRunName}/animation.json`, { cache: "no-store" });
+  if (!animationResponse.ok) {
+    throw new Error(`Could not load /runs/${nextRunName}/animation.json`);
+  }
+
+  rigPreviewAnimation = await animationResponse.json() as AnimationFile;
+  if (rigBuilder.getPlacedCount() < JOINT_NAMES.length) {
+    rigBuilder.autoRig();
+  }
+  rigBuilder.setPreviewAnimation(rigPreviewAnimation);
+
+  frameIndex = 0;
+  timeline.max = String(Math.max(rigPreviewAnimation.frames.length - 1, 0));
+  timeline.value = "0";
+  playing = shouldPlay;
+  playPauseButton.textContent = shouldPlay ? "Pause" : "Play";
+  rigPreviewRunInput.value = nextRunName;
+  rigPreviewLabel.textContent = `Previewing ${nextRunName} on authored skeleton overlay`;
+  runLabel.textContent = "Rig Builder";
+  updateRigPanel(rigBuilder.getRig());
+  renderCurrentRigFrame();
+  window.__KINERIG_RIG_PREVIEW_READY = true;
 }
 
 function render(): void {
@@ -383,6 +448,12 @@ function render(): void {
     const frameStep = Math.max(1, Math.round(delta * animation.fps * speed));
     frameIndex = (frameIndex + frameStep) % animation.frames.length;
     renderCurrentFrame();
+  }
+  if (mode === "rig" && rigPreviewAnimation && rigBuilder.hasPreviewAnimation() && playing && rigPreviewAnimation.frames.length > 0) {
+    const speed = Number(speedSelect.value);
+    const frameStep = Math.max(1, Math.round(delta * rigPreviewAnimation.fps * speed));
+    frameIndex = (frameIndex + frameStep) % rigPreviewAnimation.frames.length;
+    renderCurrentRigFrame();
   }
   renderer.render(scene, camera);
 }
@@ -403,6 +474,12 @@ function renderCurrentFrame(): void {
 }
 
 function renderCurrentRigFrame(): void {
+  if (rigPreviewAnimation && rigBuilder.hasPreviewAnimation() && rigPreviewAnimation.frames.length > 0) {
+    const frame = rigPreviewAnimation.frames[Math.min(frameIndex, rigPreviewAnimation.frames.length - 1)];
+    rigBuilder.applyPreviewFrame(frame);
+    timeline.value = String(frameIndex);
+    timeLabel.textContent = `${(frame.timeMs / 1000).toFixed(2)}s`;
+  }
   camera.lookAt(0, 1.05, 0);
   renderer.render(scene, camera);
 }
@@ -488,11 +565,30 @@ function updateRigPanel(rig: RigFile): void {
   transformModeSelect.value = rigBuilder.getTransformMode();
   const modelPosition = rigBuilder.getModelPosition();
   modelTransformLabel.textContent = `Model X ${modelPosition[0].toFixed(2)} Y ${modelPosition[1].toFixed(2)} Z ${modelPosition[2].toFixed(2)}`;
+  if (window.__KINERIG_RIG_PREVIEW_READY && !rigBuilder.hasPreviewAnimation()) {
+    markRigPreviewStopped("Motion preview stopped after rig edit.");
+  }
   for (const button of jointButtons.querySelectorAll<HTMLButtonElement>("button")) {
     const joint = button.dataset.joint as JointName;
     button.classList.toggle("active", joint === selectedJoint);
     button.classList.toggle("placed", Boolean(rig.joints[joint]));
   }
+}
+
+function clearRigPreview(label: string): void {
+  rigBuilder.restoreRigPose();
+  rigPreviewAnimation = undefined;
+  window.__KINERIG_RIG_PREVIEW_READY = false;
+  rigPreviewLabel.textContent = label;
+}
+
+function markRigPreviewStopped(label: string): void {
+  if (!rigPreviewAnimation && !window.__KINERIG_RIG_PREVIEW_READY) {
+    return;
+  }
+  clearRigPreview(label);
+  playing = false;
+  playPauseButton.textContent = "Play";
 }
 
 function downloadJson(filename: string, payload: unknown): void {
