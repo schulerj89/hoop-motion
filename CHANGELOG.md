@@ -2,6 +2,19 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.4.0 - 2026-06-18
+
+### Added
+
+- Added paginated stock-video search controls to the `Acquire` screen.
+- Added selected-candidate MP4 preview in the `Acquire` screen before downloading and processing.
+- Added `Process + Preview Rig`, which downloads/processes the selected candidate and immediately previews the resulting motion on the active authored rig.
+- Added Rig Builder `Detect Bones` for mapping common humanoid GLB bone names, including Mixamo-style names, into KineRig joint markers while preserving clicked/imported markers.
+
+### Changed
+
+- Rig preview no longer silently loads `/models/posebot.glb` or auto-fills a default rig when no authored rig is active. Preview now requires the current authored rig and reports how many of its joints are being driven.
+
 ## 1.3.1 - 2026-06-18
 
 ### Fixed

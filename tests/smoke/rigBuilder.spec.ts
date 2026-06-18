@@ -14,8 +14,8 @@ test("auto-builds and exports a rig profile", async ({ page }) => {
   await page.mouse.move(24, 24);
   await page.waitForTimeout(1_500);
 
-  const outputDir = path.resolve("docs/screenshots/v1.3.1");
-  const artifactDir = path.resolve("docs/artifacts/v1.3.1");
+  const outputDir = path.resolve("docs/screenshots/v1.4.0");
+  const artifactDir = path.resolve("docs/artifacts/v1.4.0");
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(artifactDir, { recursive: true });
   await page.screenshot({
@@ -92,7 +92,7 @@ test("imports and moves a GLB model root", async ({ page }) => {
   await expect(page.locator("#modelTransformLabel")).toContainText(`X ${after[0].toFixed(2)}`);
   await page.waitForTimeout(1_000);
 
-  const outputDir = path.resolve("docs/screenshots/v1.3.1");
+  const outputDir = path.resolve("docs/screenshots/v1.4.0");
   mkdirSync(outputDir, { recursive: true });
   await page.screenshot({
     path: path.join(outputDir, "rig-builder-imported-model-moved.png"),

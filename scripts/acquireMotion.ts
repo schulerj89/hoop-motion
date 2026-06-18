@@ -21,6 +21,7 @@ interface AcquireArgs {
   motion?: string;
   provider: "all" | StockVideoProvider;
   limit: number;
+  page: number;
   candidateIndex: number;
   runName?: string;
   download: boolean;
@@ -35,6 +36,8 @@ interface SearchManifest {
   queries: string[];
   providers: Array<"pexels" | "pixabay">;
   candidates: StockVideoCandidate[];
+  page: number;
+  limit: number;
   warnings: string[];
   notes: string[];
 }
@@ -93,8 +96,8 @@ async function main(): Promise<void> {
 
     for (const query of plan.queries) {
       const next = provider === "pexels"
-        ? await searchPexels(query, key, args.limit)
-        : await searchPixabay(query, key, args.limit);
+        ? await searchPexels(query, key, args.limit, args.page)
+        : await searchPixabay(query, key, args.limit, args.page);
       candidates.push(...next);
     }
   }
@@ -113,6 +116,8 @@ async function main(): Promise<void> {
     queries: plan.queries,
     providers,
     candidates: deduped,
+    page: args.page,
+    limit: args.limit,
     warnings,
     notes: [
       ...plan.providerHints,
@@ -147,11 +152,12 @@ async function main(): Promise<void> {
   }
 }
 
-async function searchPexels(query: string, apiKey: string, limit: number): Promise<StockVideoCandidate[]> {
+async function searchPexels(query: string, apiKey: string, limit: number, page: number): Promise<StockVideoCandidate[]> {
   const url = new URL("https://api.pexels.com/v1/videos/search");
   url.searchParams.set("query", query);
   url.searchParams.set("per_page", String(Math.min(Math.max(limit, 1), 20)));
-  const cachePath = path.join("data", "cache", "stock-search", `pexels-${normalizeRunName(query)}-${limit}.json`);
+  url.searchParams.set("page", String(Math.max(page, 1)));
+  const cachePath = path.join("data", "cache", "stock-search", `pexels-${normalizeRunName(query)}-${limit}-page-${page}.json`);
   const payload = await fetchJsonWithCache<PexelsSearchResponse>(cachePath, 6 * 60 * 60 * 1000, async () => {
     const response = await fetch(url, { headers: { Authorization: apiKey } });
     if (!response.ok) {
@@ -186,13 +192,14 @@ async function searchPexels(query: string, apiKey: string, limit: number): Promi
   });
 }
 
-async function searchPixabay(query: string, apiKey: string, limit: number): Promise<StockVideoCandidate[]> {
+async function searchPixabay(query: string, apiKey: string, limit: number, page: number): Promise<StockVideoCandidate[]> {
   const url = new URL("https://pixabay.com/api/videos/");
   url.searchParams.set("key", apiKey);
   url.searchParams.set("q", query);
   url.searchParams.set("per_page", String(Math.min(Math.max(limit, 3), 20)));
+  url.searchParams.set("page", String(Math.max(page, 1)));
   url.searchParams.set("safesearch", "true");
-  const cachePath = path.join("data", "cache", "stock-search", `pixabay-${normalizeRunName(query)}-${limit}.json`);
+  const cachePath = path.join("data", "cache", "stock-search", `pixabay-${normalizeRunName(query)}-${limit}-page-${page}.json`);
   const payload = await fetchJsonWithCache<PixabaySearchResponse>(cachePath, 24 * 60 * 60 * 1000, async () => {
     const response = await fetch(url);
     if (!response.ok) {
@@ -324,6 +331,7 @@ function parseArgs(argv: string[]): AcquireArgs {
     motion: stringArg(args, "motion") ?? envArg("motion"),
     provider: (stringArg(args, "provider") ?? envArg("provider") ?? positionals[1] ?? "all") as AcquireArgs["provider"],
     limit: Number(stringArg(args, "limit") ?? envArg("limit") ?? positionals[2] ?? "8"),
+    page: Math.max(1, Number(stringArg(args, "page") ?? envArg("page") ?? "1")),
     candidateIndex: Number(stringArg(args, "candidate-index") ?? envArg("candidate_index") ?? "0"),
     runName: stringArg(args, "run-name") ?? envArg("run_name"),
     download: args.get("download") === true || envBool("download"),

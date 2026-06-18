@@ -102,6 +102,7 @@ app.innerHTML = `
       <section id="acquirePanel" class="acquire-panel" hidden>
         <h2>Acquire Motion</h2>
         <div id="acquireKeyStatus" class="key-status"></div>
+        <div id="activeRigStatus" class="rig-model-transform">No active authored rig</div>
         <label class="field-stack">
           <span>Provider</span>
           <select id="acquireProvider" aria-label="Stock video provider">
@@ -133,10 +134,17 @@ app.innerHTML = `
           <button id="processStock" type="button" data-tooltip="Download the selected MP4, run pose extraction, write animation JSON, and refresh Motion Library.">Download + Process</button>
         </div>
         <div id="acquireStatus" class="rig-model-transform">Ready</div>
+        <video id="candidateVideo" class="candidate-video" controls muted playsinline hidden></video>
         <div id="candidateList" class="candidate-list"></div>
+        <div class="pager-row">
+          <button id="prevSearchPage" type="button" disabled>Previous</button>
+          <span id="searchPageLabel">Page 1</span>
+          <button id="nextSearchPage" type="button" disabled>Next</button>
+        </div>
         <div class="rig-actions">
           <button id="openProcessedMotion" type="button" disabled>Open Motion</button>
           <button id="previewProcessedRig" type="button" disabled>Preview In Rig</button>
+          <button id="processPreviewRig" type="button" data-tooltip="Download and process the selected MP4, then immediately preview the motion on the active authored rig.">Process + Preview Rig</button>
         </div>
       </section>
       <section id="rigPanel" class="rig-panel" hidden>
@@ -165,6 +173,7 @@ app.innerHTML = `
         <div id="rigPreviewLabel" class="rig-model-transform">No motion preview loaded</div>
         <div class="rig-actions">
           <button id="autoRig" type="button" data-tooltip="Fill missing joint dots from the model bounds. Clicked or imported dots stay where you placed them.">Auto A/T</button>
+          <button id="detectBones" type="button" data-tooltip="Detect joints from a rigged GLB skeleton, such as Mixamo-style bone names. Clicked or imported dots stay where you placed them.">Detect Bones</button>
           <button id="exportRig" type="button" data-tooltip="Download the current skeleton marker profile as rig JSON.">Export Rig</button>
           <button id="exportPackage" type="button" data-tooltip="Download the rig plus loaded animation data as a retarget package JSON.">Export Package</button>
         </div>
@@ -204,6 +213,7 @@ const motionPanel = document.querySelector<HTMLElement>("#motionPanel")!;
 const acquirePanel = document.querySelector<HTMLElement>("#acquirePanel")!;
 const rigPanel = document.querySelector<HTMLElement>("#rigPanel")!;
 const acquireKeyStatus = document.querySelector<HTMLDivElement>("#acquireKeyStatus")!;
+const activeRigStatus = document.querySelector<HTMLDivElement>("#activeRigStatus")!;
 const acquireProvider = document.querySelector<HTMLSelectElement>("#acquireProvider")!;
 const acquireQuery = document.querySelector<HTMLInputElement>("#acquireQuery")!;
 const acquireLimit = document.querySelector<HTMLInputElement>("#acquireLimit")!;
@@ -212,9 +222,14 @@ const acquireRunName = document.querySelector<HTMLInputElement>("#acquireRunName
 const searchStockButton = document.querySelector<HTMLButtonElement>("#searchStock")!;
 const processStockButton = document.querySelector<HTMLButtonElement>("#processStock")!;
 const acquireStatus = document.querySelector<HTMLDivElement>("#acquireStatus")!;
+const candidateVideo = document.querySelector<HTMLVideoElement>("#candidateVideo")!;
 const candidateList = document.querySelector<HTMLDivElement>("#candidateList")!;
+const prevSearchPageButton = document.querySelector<HTMLButtonElement>("#prevSearchPage")!;
+const nextSearchPageButton = document.querySelector<HTMLButtonElement>("#nextSearchPage")!;
+const searchPageLabel = document.querySelector<HTMLSpanElement>("#searchPageLabel")!;
 const openProcessedMotionButton = document.querySelector<HTMLButtonElement>("#openProcessedMotion")!;
 const previewProcessedRigButton = document.querySelector<HTMLButtonElement>("#previewProcessedRig")!;
+const processPreviewRigButton = document.querySelector<HTMLButtonElement>("#processPreviewRig")!;
 const rigModelUrl = document.querySelector<HTMLInputElement>("#rigModelUrl")!;
 const loadRigModelButton = document.querySelector<HTMLButtonElement>("#loadRigModel")!;
 const rigModelFile = document.querySelector<HTMLInputElement>("#rigModelFile")!;
@@ -225,6 +240,7 @@ const rigPreviewRunInput = document.querySelector<HTMLInputElement>("#rigPreview
 const previewRigMotionButton = document.querySelector<HTMLButtonElement>("#previewRigMotion")!;
 const rigPreviewLabel = document.querySelector<HTMLDivElement>("#rigPreviewLabel")!;
 const autoRigButton = document.querySelector<HTMLButtonElement>("#autoRig")!;
+const detectBonesButton = document.querySelector<HTMLButtonElement>("#detectBones")!;
 const exportRigButton = document.querySelector<HTMLButtonElement>("#exportRig")!;
 const exportPackageButton = document.querySelector<HTMLButtonElement>("#exportPackage")!;
 const importRigInput = document.querySelector<HTMLInputElement>("#importRig")!;
@@ -282,7 +298,9 @@ let report: ValidationReport | undefined;
 let runIndex: MotionRunIndexFile | undefined;
 let candidates: StockVideoCandidate[] = [];
 let selectedCandidateIndex = 0;
+let searchPage = 1;
 let processedRunName: string | undefined;
+let acquireBusy = false;
 let frameIndex = 0;
 let playing = true;
 let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-reach";
@@ -300,6 +318,7 @@ window.__KINERIG_RIG_TEST_API = {
 
 runInput.value = runName;
 renderJointButtons();
+updateActiveRigStatus();
 loadRunIndex().catch(() => {
   runLibrary.innerHTML = `<p class="muted">No run index found</p>`;
 });
@@ -321,11 +340,26 @@ rigModeButton.addEventListener("click", () => {
 });
 
 searchStockButton.addEventListener("click", () => {
-  searchStockVideos().catch(showError);
+  searchStockVideos(1).catch(showError);
 });
 
 processStockButton.addEventListener("click", () => {
   processSelectedCandidate().catch(showError);
+});
+
+processPreviewRigButton.addEventListener("click", () => {
+  processSelectedCandidate({ previewRig: true }).catch(showError);
+});
+
+prevSearchPageButton.addEventListener("click", () => {
+  if (searchPage <= 1) {
+    return;
+  }
+  searchStockVideos(searchPage - 1).catch(showError);
+});
+
+nextSearchPageButton.addEventListener("click", () => {
+  searchStockVideos(searchPage + 1).catch(showError);
 });
 
 openProcessedMotionButton.addEventListener("click", () => {
@@ -435,6 +469,15 @@ autoRigButton.addEventListener("click", () => {
   renderCurrentRigFrame();
 });
 
+detectBonesButton.addEventListener("click", () => {
+  markRigPreviewStopped("Motion preview reset after bone detection.");
+  const result = rigBuilder.detectRigFromBones();
+  rigPreviewLabel.textContent = result.boneCount === 0
+    ? "No GLB skeleton bones found. Use Auto A/T or place joints manually."
+    : `Detected ${result.detected.length}/${JOINT_NAMES.length} joints from ${result.boneCount} bones.`;
+  renderCurrentRigFrame();
+});
+
 exportRigButton.addEventListener("click", () => {
   downloadJson(`${rigBuilder.getRig().name}.json`, rigBuilder.getRig());
 });
@@ -525,8 +568,9 @@ async function loadRigAuthoringModel(modelUrl: string): Promise<void> {
 async function loadRigPreviewRun(nextRunName: string, shouldPlay: boolean): Promise<void> {
   window.__KINERIG_RIG_PREVIEW_READY = false;
   rigPreviewLabel.textContent = `Loading ${nextRunName}`;
-  if (window.__KINERIG_RIG_READY !== true) {
-    await loadRigAuthoringModel(rigModelUrl.value);
+  if (rigBuilder.getPlacedCount() === 0) {
+    rigPreviewLabel.textContent = "No authored rig is active";
+    throw new Error("Create, detect, or import a rig in Rig Builder before previewing motion.");
   }
 
   const animationResponse = await fetch(`/runs/${nextRunName}/animation.json`, { cache: "no-store" });
@@ -535,9 +579,6 @@ async function loadRigPreviewRun(nextRunName: string, shouldPlay: boolean): Prom
   }
 
   rigPreviewAnimation = await animationResponse.json() as AnimationFile;
-  if (rigBuilder.getPlacedCount() < JOINT_NAMES.length) {
-    rigBuilder.autoRig();
-  }
   rigBuilder.setPreviewAnimation(rigPreviewAnimation);
 
   frameIndex = 0;
@@ -546,7 +587,7 @@ async function loadRigPreviewRun(nextRunName: string, shouldPlay: boolean): Prom
   playing = shouldPlay;
   playPauseButton.textContent = shouldPlay ? "Pause" : "Play";
   rigPreviewRunInput.value = nextRunName;
-  rigPreviewLabel.textContent = `Previewing ${nextRunName} on authored skeleton overlay`;
+  rigPreviewLabel.textContent = `Previewing ${nextRunName} on active rig (${rigBuilder.getPlacedCount()}/${JOINT_NAMES.length} joints)`;
   runLabel.textContent = "Rig Builder";
   updateRigPanel(rigBuilder.getRig());
   renderCurrentRigFrame();
@@ -586,21 +627,22 @@ async function loadAcquireStatus(): Promise<void> {
     .join("");
 }
 
-async function searchStockVideos(): Promise<void> {
+async function searchStockVideos(nextPage = 1): Promise<void> {
   const query = acquireQuery.value.trim();
   if (!query) {
     acquireStatus.textContent = "Enter a search query.";
     return;
   }
 
-  setAcquireBusy(true, `Searching ${query}`);
+  setAcquireBusy(true, `Searching ${query} page ${nextPage}`);
   const response = await fetch("/api/acquire/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       query,
       provider: acquireProvider.value,
-      limit: Number(acquireLimit.value)
+      limit: Number(acquireLimit.value),
+      page: nextPage
     })
   });
   const payload = await response.json() as {
@@ -614,19 +656,26 @@ async function searchStockVideos(): Promise<void> {
 
   candidates = payload.candidates ?? [];
   selectedCandidateIndex = 0;
+  searchPage = nextPage;
   processedRunName = undefined;
   openProcessedMotionButton.disabled = true;
   previewProcessedRigButton.disabled = true;
+  renderSelectedCandidateVideo();
   renderCandidates(candidates);
   const warning = payload.warnings?.[0] ? ` ${payload.warnings[0]}` : "";
-  setAcquireBusy(false, `Found ${candidates.length} candidates.${warning}`);
+  setAcquireBusy(false, `Found ${candidates.length} candidates on page ${searchPage}.${warning}`);
 }
 
-async function processSelectedCandidate(): Promise<void> {
+async function processSelectedCandidate(options: { previewRig?: boolean } = {}): Promise<void> {
   const query = acquireQuery.value.trim();
   const selected = candidates[selectedCandidateIndex];
   if (!query || !selected) {
     acquireStatus.textContent = "Search and select a candidate first.";
+    return;
+  }
+  if (options.previewRig && rigBuilder.getPlacedCount() === 0) {
+    acquireStatus.textContent = "Create, detect, or import a rig in Rig Builder before using Process + Preview Rig.";
+    updateActiveRigStatus();
     return;
   }
 
@@ -639,6 +688,7 @@ async function processSelectedCandidate(): Promise<void> {
       query,
       provider: acquireProvider.value,
       limit: Number(acquireLimit.value),
+      page: searchPage,
       candidateIndex: selectedCandidateIndex,
       runName,
       maxFrames: acquireMaxFrames.value.trim()
@@ -668,10 +718,15 @@ async function processSelectedCandidate(): Promise<void> {
   openProcessedMotionButton.disabled = false;
   previewProcessedRigButton.disabled = false;
   setAcquireBusy(false, `Processed ${processedRunName}. Open it in Motion or preview it on the rig.`);
+  if (options.previewRig) {
+    setMode("rig");
+    await loadRigPreviewRun(processedRunName, true);
+  }
 }
 
 function renderCandidates(nextCandidates: StockVideoCandidate[]): void {
   candidateList.innerHTML = "";
+  updateSearchPager();
   if (nextCandidates.length === 0) {
     candidateList.innerHTML = `<p class="muted">No candidates yet. Try a more specific full-body query.</p>`;
     return;
@@ -692,6 +747,7 @@ function renderCandidates(nextCandidates: StockVideoCandidate[]): void {
     button.addEventListener("click", () => {
       selectedCandidateIndex = index;
       acquireRunName.value = `${candidate.provider}-${candidate.id}`;
+      renderSelectedCandidateVideo();
       renderCandidates(candidates);
     });
     candidateList.appendChild(button);
@@ -699,9 +755,31 @@ function renderCandidates(nextCandidates: StockVideoCandidate[]): void {
 }
 
 function setAcquireBusy(busy: boolean, label: string): void {
+  acquireBusy = busy;
   searchStockButton.disabled = busy;
   processStockButton.disabled = busy;
+  processPreviewRigButton.disabled = busy || rigBuilder.getPlacedCount() === 0;
+  updateSearchPager();
   acquireStatus.textContent = label;
+}
+
+function renderSelectedCandidateVideo(): void {
+  const selected = candidates[selectedCandidateIndex];
+  if (!selected) {
+    candidateVideo.hidden = true;
+    candidateVideo.removeAttribute("src");
+    return;
+  }
+  candidateVideo.src = selected.downloadUrl;
+  candidateVideo.poster = selected.previewImageUrl ?? "";
+  candidateVideo.hidden = false;
+  candidateVideo.load();
+}
+
+function updateSearchPager(): void {
+  searchPageLabel.textContent = `Page ${searchPage}`;
+  prevSearchPageButton.disabled = acquireBusy || searchPage <= 1;
+  nextSearchPageButton.disabled = acquireBusy || candidates.length === 0;
 }
 
 function render(): void {
@@ -835,6 +913,7 @@ function setMode(nextMode: AppMode): void {
     runLabel.textContent = "Acquire Motion";
     playing = false;
     playPauseButton.textContent = "Play";
+    updateActiveRigStatus();
     renderCurrentFrame();
   } else {
     window.history.replaceState(null, "", `?run=${encodeURIComponent(runName)}&mode=motion`);
@@ -871,6 +950,7 @@ function updateRigPanel(rig: RigFile): void {
   transformModeSelect.value = rigBuilder.getTransformMode();
   const modelPosition = rigBuilder.getModelPosition();
   modelTransformLabel.textContent = `Model X ${modelPosition[0].toFixed(2)} Y ${modelPosition[1].toFixed(2)} Z ${modelPosition[2].toFixed(2)}`;
+  updateActiveRigStatus();
   if (window.__KINERIG_RIG_PREVIEW_READY && !rigBuilder.hasPreviewAnimation()) {
     markRigPreviewStopped("Motion preview stopped after rig edit.");
   }
@@ -878,6 +958,17 @@ function updateRigPanel(rig: RigFile): void {
     const joint = button.dataset.joint as JointName;
     button.classList.toggle("active", joint === selectedJoint);
     button.classList.toggle("placed", Boolean(rig.joints[joint]));
+  }
+}
+
+function updateActiveRigStatus(): void {
+  const rig = rigBuilder.getRig();
+  const placed = rigBuilder.getPlacedCount();
+  activeRigStatus.textContent = placed > 0
+    ? `Active rig: ${rig.name} (${placed}/${JOINT_NAMES.length} joints). Process + Preview Rig will use this rig.`
+    : "No active authored rig. Open Rig Builder, then create, detect, or import a rig first.";
+  if (!acquireBusy) {
+    processPreviewRigButton.disabled = placed === 0;
   }
 }
 

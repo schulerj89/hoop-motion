@@ -18,7 +18,13 @@ import {
 } from "three";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { createAutoRigFromModel, createEmptyRig, countPlacedJoints, withJointMarker } from "./rigAuthoring";
+import {
+  createAutoRigFromModel,
+  createEmptyRig,
+  createRigFromDetectedBones,
+  countPlacedJoints,
+  withJointMarker
+} from "./rigAuthoring";
 import { BONES, JOINT_NAMES } from "./skeleton";
 import type { AnimationFile, AnimationFrame, JointName, RigFile, Vec3 } from "./types";
 
@@ -175,6 +181,22 @@ export class RigBuilderScene {
 
   autoRig(): void {
     this.applyRig(createAutoRigFromModel(this.modelRoot, `${this.modelName}-rig`, this.modelUrl, this.modelName, this.rig));
+  }
+
+  detectRigFromBones(): { detected: JointName[]; missing: JointName[]; boneCount: number } {
+    const result = createRigFromDetectedBones(
+      this.modelRoot,
+      `${this.modelName}-detected-rig`,
+      this.modelUrl,
+      this.modelName,
+      this.rig
+    );
+    this.applyRig(result.rig);
+    return {
+      detected: result.detected,
+      missing: result.missing,
+      boneCount: result.boneCount
+    };
   }
 
   applyRig(rig: RigFile): void {

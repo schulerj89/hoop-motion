@@ -472,6 +472,15 @@ dd a {
   gap: 8px;
 }
 
+.candidate-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid #2f3a42;
+  border-radius: 8px;
+  background: #080b0e;
+  object-fit: contain;
+}
+
 .candidate-card {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);
@@ -518,6 +527,19 @@ dd a {
 .candidate-card small {
   color: #aeb8bd;
   font-size: 11px;
+}
+
+.pager-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.pager-row span {
+  color: #d4e2e8;
+  font-size: 12px;
+  text-align: center;
 }
 
 @media (max-width: 860px) {

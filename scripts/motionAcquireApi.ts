@@ -13,6 +13,7 @@ interface AcquireSearchRequest {
   query?: string;
   provider?: Provider;
   limit?: number;
+  page?: number;
 }
 
 interface AcquireProcessRequest extends AcquireSearchRequest {
@@ -59,7 +60,8 @@ async function handleAcquireRequest(req: IncomingMessage, res: ServerResponse): 
     const query = requireQuery(body.query);
     const provider = normalizeProvider(body.provider);
     const limit = normalizeLimit(body.limit);
-    await runAcquireCommand(["--query", query, "--provider", provider, "--limit", String(limit)]);
+    const page = normalizePage(body.page);
+    await runAcquireCommand(["--query", query, "--provider", provider, "--limit", String(limit), "--page", String(page)]);
     const manifest = await readSearchManifest(query);
     sendJson(res, 200, manifest);
     return;
@@ -70,6 +72,7 @@ async function handleAcquireRequest(req: IncomingMessage, res: ServerResponse): 
     const query = requireQuery(body.query);
     const provider = normalizeProvider(body.provider);
     const limit = normalizeLimit(body.limit);
+    const page = normalizePage(body.page);
     const candidateIndex = Number.isFinite(body.candidateIndex) ? String(body.candidateIndex) : "0";
     const runName = normalizeRunName(body.runName || `${provider}-${query}`);
     const argv = [
@@ -79,6 +82,8 @@ async function handleAcquireRequest(req: IncomingMessage, res: ServerResponse): 
       provider,
       "--limit",
       String(limit),
+      "--page",
+      String(page),
       "--candidate-index",
       candidateIndex,
       "--run-name",
@@ -187,6 +192,13 @@ function normalizeLimit(limit: number | undefined): number {
     return 6;
   }
   return Math.min(Math.max(Math.round(limit), 1), 12);
+}
+
+function normalizePage(page: number | undefined): number {
+  if (typeof page !== "number" || !Number.isFinite(page)) {
+    return 1;
+  }
+  return Math.max(Math.round(page), 1);
 }
 
 async function runAcquireCommand(argv: string[]): Promise<void> {

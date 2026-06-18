@@ -1,4 +1,4 @@
-import { Box3, Object3D, Vector3 } from "three";
+import { Bone, Box3, Object3D, Vector3 } from "three";
 import { BONES, JOINT_NAMES } from "./skeleton";
 import type {
   AnimationFile,
@@ -8,6 +8,13 @@ import type {
   RigJointMarker,
   Vec3
 } from "./types";
+
+export interface DetectedRigResult {
+  rig: RigFile;
+  detected: JointName[];
+  missing: JointName[];
+  boneCount: number;
+}
 
 export function createEmptyRig(name = "untitled-rig", modelUrl?: string, modelName?: string): RigFile {
   return {
@@ -19,6 +26,58 @@ export function createEmptyRig(name = "untitled-rig", modelUrl?: string, modelNa
     authoringPose: "custom",
     joints: {},
     bones: BONES
+  };
+}
+
+export function createRigFromDetectedBones(
+  model: Object3D,
+  name = "detected-rig",
+  modelUrl?: string,
+  modelName?: string,
+  existingRig?: RigFile
+): DetectedRigResult {
+  const bones = collectBones(model);
+  const joints: Partial<Record<JointName, RigJointMarker>> = {};
+  const detected: JointName[] = [];
+  const missing: JointName[] = [];
+
+  for (const joint of JOINT_NAMES) {
+    const existing = existingRig?.joints[joint];
+    if (existing && existing.source !== "auto") {
+      joints[joint] = marker(joint, existing.position, existing.source);
+      detected.push(joint);
+      continue;
+    }
+
+    const bone = findBoneForJoint(bones, joint);
+    if (!bone) {
+      if (existing) {
+        joints[joint] = marker(joint, existing.position, existing.source);
+      } else {
+        missing.push(joint);
+      }
+      continue;
+    }
+
+    const position = bone.getWorldPosition(new Vector3());
+    joints[joint] = marker(joint, [position.x, position.y, position.z], "detect");
+    detected.push(joint);
+  }
+
+  return {
+    rig: {
+      schemaVersion: "kinerig.rig.v1",
+      name,
+      generatedAt: new Date().toISOString(),
+      modelUrl,
+      modelName,
+      authoringPose: "detected",
+      joints,
+      bones: BONES
+    },
+    detected,
+    missing,
+    boneCount: bones.length
   };
 }
 
@@ -147,3 +206,57 @@ function marker(joint: JointName, position: Vec3, source: RigJointMarker["source
     source
   };
 }
+
+function collectBones(model: Object3D): Array<{ bone: Bone; key: string }> {
+  const bones: Array<{ bone: Bone; key: string }> = [];
+  model.updateMatrixWorld(true);
+  model.traverse((object) => {
+    if (object instanceof Bone) {
+      bones.push({
+        bone: object,
+        key: normalizeBoneName(object.name)
+      });
+    }
+  });
+  return bones;
+}
+
+function findBoneForJoint(bones: Array<{ bone: Bone; key: string }>, joint: JointName): Bone | undefined {
+  const aliases = BONE_ALIASES[joint];
+  for (const alias of aliases) {
+    const match = bones.find((entry) => entry.key === alias || entry.key.endsWith(alias));
+    if (match) {
+      return match.bone;
+    }
+  }
+  return undefined;
+}
+
+function normalizeBoneName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/^mixamorig/i, "")
+    .replace(/^armature/i, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+const BONE_ALIASES: Record<JointName, string[]> = {
+  Hips: ["hips", "pelvis", "root"],
+  Chest: ["spine2", "spine1", "chest", "upperchest", "spine"],
+  Neck: ["neck"],
+  Head: ["head"],
+  LeftShoulder: ["leftshoulder", "leftclavicle", "lshoulder", "lclavicle"],
+  RightShoulder: ["rightshoulder", "rightclavicle", "rshoulder", "rclavicle"],
+  LeftElbow: ["leftforearm", "leftlowerarm", "leftelbow", "lforearm", "llowerarm"],
+  RightElbow: ["rightforearm", "rightlowerarm", "rightelbow", "rforearm", "rlowerarm"],
+  LeftWrist: ["lefthand", "leftwrist", "lhand", "lwrist"],
+  RightWrist: ["righthand", "rightwrist", "rhand", "rwrist"],
+  LeftHip: ["leftupleg", "leftthigh", "lefthip", "lupleg", "lthigh"],
+  RightHip: ["rightupleg", "rightthigh", "righthip", "rupleg", "rthigh"],
+  LeftKnee: ["leftleg", "leftshin", "leftcalf", "leftknee", "lleg", "lshin"],
+  RightKnee: ["rightleg", "rightshin", "rightcalf", "rightknee", "rleg", "rshin"],
+  LeftAnkle: ["leftfoot", "leftankle", "lfoot", "lankle"],
+  RightAnkle: ["rightfoot", "rightankle", "rfoot", "rankle"],
+  LeftFoot: ["lefttoebase", "lefttoe", "leftfoot", "ltoebase", "ltoe", "lfoot"],
+  RightFoot: ["righttoebase", "righttoe", "rightfoot", "rtoebase", "rtoe", "rfoot"]
+};

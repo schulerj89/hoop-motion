@@ -120,9 +120,12 @@ The `Acquire` screen:
 
 - Shows whether local Pexels/Pixabay key files were found.
 - Searches stock video providers from the browser without exposing keys to the browser bundle.
-- Lets you select one candidate.
+- Lets you page through provider search results and select one candidate.
+- Shows an MP4 preview for the selected candidate before processing.
 - Downloads and processes the selected MP4 into a KineRig run.
-- Refreshes Motion Library and offers direct `Open Motion` or `Preview In Rig` handoff buttons.
+- Refreshes Motion Library and offers direct `Open Motion`, `Preview In Rig`, or `Process + Preview Rig` handoff buttons.
+
+`Process + Preview Rig` uses the active authored rig from Rig Builder. If no rig is active, open Rig Builder first and place, import, auto-fill, or detect joints. KineRig Studio no longer creates a default `posebot` rig during preview, so your authored rig is not replaced.
 
 Credential txt files are supported from the parent Projects folder:
 
@@ -149,6 +152,7 @@ Rig Builder supports:
 - Model URL loading.
 - Model-root translate, rotate, and scale controls for positioning imported characters.
 - Auto A/T-pose marker fill that preserves clicked or imported dots.
+- Detect Bones mapping for common humanoid GLB skeleton bone names while preserving clicked or imported dots.
 - Per-joint marker selection and click placement on the model.
 - Transform-handle marker adjustment.
 - Motion-run preview that animates the authored skeleton overlay on the loaded model.

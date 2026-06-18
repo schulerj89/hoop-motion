@@ -104,7 +104,7 @@ export interface AnimationFile {
 export interface RigJointMarker {
   joint: JointName;
   position: Vec3;
-  source: "auto" | "click" | "import";
+  source: "auto" | "click" | "import" | "detect";
 }
 
 export interface RigFile {
@@ -113,7 +113,7 @@ export interface RigFile {
   generatedAt: string;
   modelUrl?: string;
   modelName?: string;
-  authoringPose: "a-pose" | "t-pose" | "custom";
+  authoringPose: "a-pose" | "t-pose" | "custom" | "detected";
   joints: Partial<Record<JointName, RigJointMarker>>;
   bones: BoneDefinition[];
 }
