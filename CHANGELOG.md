@@ -2,6 +2,13 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.3.1 - 2026-06-18
+
+### Fixed
+
+- Fixed the `Acquire` screen Search action on Windows by replacing the `npx.cmd` child-process launch with a direct Node invocation of the local `tsx` CLI.
+- Verified the local acquisition API now returns real stock-video candidates while keeping Pexels and Pixabay keys server-side.
+
 ## 1.3.0 - 2026-06-18
 
 ### Added

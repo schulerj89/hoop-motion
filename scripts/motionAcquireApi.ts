@@ -191,9 +191,9 @@ function normalizeLimit(limit: number | undefined): number {
 
 async function runAcquireCommand(argv: string[]): Promise<void> {
   await mkdir(path.join(PROJECT_ROOT, "data"), { recursive: true });
-  const executable = process.platform === "win32" ? "npx.cmd" : "npx";
+  const tsxCli = path.join(PROJECT_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(executable, ["tsx", "scripts/acquireMotion.ts", ...argv], {
+    const child = spawn(process.execPath, [tsxCli, "scripts/acquireMotion.ts", ...argv], {
       cwd: PROJECT_ROOT,
       env: process.env,
       shell: false,

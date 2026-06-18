@@ -1,7 +1,7 @@
 {
   "schemaVersion": "kinerig.animation.v1",
   "sourceVideo": "data/input/fixture_wave.mp4",
-  "generatedAt": "2026-06-18T21:46:36.654Z",
+  "generatedAt": "2026-06-18T21:55:07.817Z",
   "synthetic": true,
   "fps": 30,
   "durationMs": 2966,
@@ -150,7 +150,7 @@
   "report": {
     "schemaVersion": "kinerig.report.v1",
     "sourceVideo": "data/input/fixture_wave.mp4",
-    "generatedAt": "2026-06-18T21:46:36.654Z",
+    "generatedAt": "2026-06-18T21:55:07.816Z",
     "synthetic": true,
     "fps": 30,
     "framesProcessed": 90,

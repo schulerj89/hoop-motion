@@ -90,7 +90,7 @@ test("searches and hands off acquired motion from the Acquire screen", async ({ 
   await page.mouse.move(24, 24);
   await page.waitForTimeout(250);
 
-  const screenshotDir = path.resolve("docs/screenshots/v1.3.0");
+  const screenshotDir = path.resolve("docs/screenshots/v1.3.1");
   mkdirSync(screenshotDir, { recursive: true });
   await page.screenshot({
     path: path.join(screenshotDir, "acquire-motion-workflow.png"),
