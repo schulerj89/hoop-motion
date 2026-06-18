@@ -17,11 +17,15 @@ import {
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { applyAnimationFrame, createSkeletonDebugLine } from "./lib/modelRig";
-import type { AnimationFile, ValidationReport } from "./lib/types";
+import { createRetargetPackage, sanitizeRigFile } from "./lib/rigAuthoring";
+import { RigBuilderScene } from "./lib/rigBuilderScene";
+import { JOINT_NAMES } from "./lib/skeleton";
+import type { AnimationFile, JointName, RigFile, ValidationReport } from "./lib/types";
 
 declare global {
   interface Window {
     __HOOPMOTION_READY?: boolean;
+    __HOOPMOTION_RIG_READY?: boolean;
   }
 }
 
@@ -40,6 +44,10 @@ app.innerHTML = `
             <h1>HoopMotion</h1>
             <p id="runLabel">Loading</p>
           </div>
+        </div>
+        <div class="mode-tabs" role="tablist" aria-label="Workspace mode">
+          <button id="motionMode" class="active" type="button">Motion</button>
+          <button id="rigMode" type="button">Rig Builder</button>
         </div>
         <div class="run-picker">
           <input id="runInput" type="text" value="fixture-jump-shot" aria-label="Run name" />
@@ -64,13 +72,42 @@ app.innerHTML = `
       </div>
     </section>
     <aside class="report-panel">
-      <h2>Run Report</h2>
-      <dl id="reportList"></dl>
+      <section id="motionPanel">
+        <h2>Run Report</h2>
+        <dl id="reportList"></dl>
+      </section>
+      <section id="rigPanel" class="rig-panel" hidden>
+        <h2>Rig Builder</h2>
+        <div class="rig-row">
+          <input id="rigModelUrl" type="text" value="/models/hoopbot.glb" aria-label="Model URL" />
+          <button id="loadRigModel" type="button">Load</button>
+        </div>
+        <label class="file-button">
+          <span>GLB File</span>
+          <input id="rigModelFile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" />
+        </label>
+        <div class="rig-actions">
+          <button id="autoRig" type="button">Auto A/T</button>
+          <button id="exportRig" type="button">Export Rig</button>
+          <button id="exportPackage" type="button">Export Package</button>
+        </div>
+        <label class="file-button">
+          <span>Import Rig</span>
+          <input id="importRig" type="file" accept="application/json,.json" />
+        </label>
+        <div class="rig-status">
+          <span id="selectedJointLabel">Hips</span>
+          <span id="rigCountLabel">0 / 18</span>
+        </div>
+        <div id="jointButtons" class="joint-grid"></div>
+      </section>
     </aside>
   </main>
 `;
 
 const stage = document.querySelector<HTMLDivElement>("#stage")!;
+const motionModeButton = document.querySelector<HTMLButtonElement>("#motionMode")!;
+const rigModeButton = document.querySelector<HTMLButtonElement>("#rigMode")!;
 const runInput = document.querySelector<HTMLInputElement>("#runInput")!;
 const runLabel = document.querySelector<HTMLParagraphElement>("#runLabel")!;
 const loadRunButton = document.querySelector<HTMLButtonElement>("#loadRun")!;
@@ -81,6 +118,18 @@ const speedSelect = document.querySelector<HTMLSelectElement>("#speed")!;
 const timeline = document.querySelector<HTMLInputElement>("#timeline")!;
 const timeLabel = document.querySelector<HTMLSpanElement>("#timeLabel")!;
 const reportList = document.querySelector<HTMLElement>("#reportList")!;
+const motionPanel = document.querySelector<HTMLElement>("#motionPanel")!;
+const rigPanel = document.querySelector<HTMLElement>("#rigPanel")!;
+const rigModelUrl = document.querySelector<HTMLInputElement>("#rigModelUrl")!;
+const loadRigModelButton = document.querySelector<HTMLButtonElement>("#loadRigModel")!;
+const rigModelFile = document.querySelector<HTMLInputElement>("#rigModelFile")!;
+const autoRigButton = document.querySelector<HTMLButtonElement>("#autoRig")!;
+const exportRigButton = document.querySelector<HTMLButtonElement>("#exportRig")!;
+const exportPackageButton = document.querySelector<HTMLButtonElement>("#exportPackage")!;
+const importRigInput = document.querySelector<HTMLInputElement>("#importRig")!;
+const selectedJointLabel = document.querySelector<HTMLSpanElement>("#selectedJointLabel")!;
+const rigCountLabel = document.querySelector<HTMLSpanElement>("#rigCountLabel")!;
+const jointButtons = document.querySelector<HTMLDivElement>("#jointButtons")!;
 
 const scene = new Scene();
 scene.background = new Color(0x101418);
@@ -122,20 +171,37 @@ const debugLine = createSkeletonDebugLine();
 scene.add(debugLine);
 
 const clock = new Clock();
+let mode: "motion" | "rig" = new URLSearchParams(window.location.search).get("mode") === "rig" ? "rig" : "motion";
 let animation: AnimationFile | undefined;
 let report: ValidationReport | undefined;
 let frameIndex = 0;
 let playing = true;
 let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-jump-shot";
 let loading = false;
+const rigBuilder = new RigBuilderScene(scene, camera, renderer, stage, updateRigPanel);
 
 runInput.value = runName;
-loadRun(runName).catch(showError);
+renderJointButtons();
+setMode(mode);
+if (mode === "rig") {
+  loadRigAuthoringModel(rigModelUrl.value).catch(showError);
+} else {
+  loadRun(runName).catch(showError);
+}
+
+motionModeButton.addEventListener("click", () => setMode("motion"));
+rigModeButton.addEventListener("click", () => {
+  setMode("rig");
+  if (!rigBuilder.getPlacedCount()) {
+    loadRigAuthoringModel(rigModelUrl.value).catch(showError);
+  }
+});
 
 loadRunButton.addEventListener("click", () => {
   const nextRun = runInput.value.trim();
   if (nextRun) {
-    window.history.replaceState(null, "", `?run=${encodeURIComponent(nextRun)}`);
+    setMode("motion");
+    window.history.replaceState(null, "", `?run=${encodeURIComponent(nextRun)}&mode=motion`);
     loadRun(nextRun).catch(showError);
   }
 });
@@ -159,6 +225,53 @@ timeline.addEventListener("input", () => {
   renderCurrentFrame();
 });
 
+loadRigModelButton.addEventListener("click", () => {
+  setMode("rig");
+  loadRigAuthoringModel(rigModelUrl.value).catch(showError);
+});
+
+rigModelFile.addEventListener("change", () => {
+  const file = rigModelFile.files?.[0];
+  if (!file) {
+    return;
+  }
+  setMode("rig");
+  rigBuilder.loadModelFromFile(file)
+    .then(() => {
+      rigModelUrl.value = file.name;
+      window.__HOOPMOTION_RIG_READY = true;
+      updateRigPanel(rigBuilder.getRig());
+      renderCurrentRigFrame();
+    })
+    .catch(showError);
+});
+
+autoRigButton.addEventListener("click", () => {
+  rigBuilder.autoRig();
+  renderCurrentRigFrame();
+});
+
+exportRigButton.addEventListener("click", () => {
+  downloadJson(`${rigBuilder.getRig().name}.json`, rigBuilder.getRig());
+});
+
+exportPackageButton.addEventListener("click", () => {
+  downloadJson(`${rigBuilder.getRig().name}-retarget-package.json`, createRetargetPackage(rigBuilder.getRig(), animation));
+});
+
+importRigInput.addEventListener("change", () => {
+  const file = importRigInput.files?.[0];
+  if (!file) {
+    return;
+  }
+  file.text()
+    .then((text) => {
+      rigBuilder.applyRig(sanitizeRigFile(JSON.parse(text) as RigFile));
+      renderCurrentRigFrame();
+    })
+    .catch(showError);
+});
+
 new ResizeObserver(resize).observe(stage);
 resize();
 renderer.setAnimationLoop(render);
@@ -180,6 +293,7 @@ async function loadRun(nextRunName: string): Promise<void> {
   animation = await animationResponse.json() as AnimationFile;
   report = animation.report;
 
+  rigBuilder.setVisible(false);
   scene.remove(modelRoot);
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync(animation.modelUrl);
@@ -198,9 +312,28 @@ async function loadRun(nextRunName: string): Promise<void> {
   window.__HOOPMOTION_READY = true;
 }
 
+async function loadRigAuthoringModel(modelUrl: string): Promise<void> {
+  if (loading) {
+    return;
+  }
+  loading = true;
+  window.__HOOPMOTION_RIG_READY = false;
+  runLabel.textContent = "Rig Builder";
+  scene.remove(modelRoot);
+  modelRoot = new Group();
+  scene.add(modelRoot);
+  debugLine.visible = false;
+  await rigBuilder.loadModelFromUrl(modelUrl);
+  rigBuilder.setVisible(true);
+  updateRigPanel(rigBuilder.getRig());
+  renderCurrentRigFrame();
+  loading = false;
+  window.__HOOPMOTION_RIG_READY = true;
+}
+
 function render(): void {
   const delta = clock.getDelta();
-  if (animation && playing && animation.frames.length > 0) {
+  if (mode === "motion" && animation && playing && animation.frames.length > 0) {
     const speed = Number(speedSelect.value);
     const frameStep = Math.max(1, Math.round(delta * animation.fps * speed));
     frameIndex = (frameIndex + frameStep) % animation.frames.length;
@@ -221,6 +354,11 @@ function renderCurrentFrame(): void {
   const hips = frame.joints.Hips.position;
   const cameraTarget = new Vector3(0, Math.max(1.0, hips[1] + 0.25), 0);
   camera.lookAt(cameraTarget);
+  renderer.render(scene, camera);
+}
+
+function renderCurrentRigFrame(): void {
+  camera.lookAt(0, 1.05, 0);
   renderer.render(scene, camera);
 }
 
@@ -252,4 +390,65 @@ function showError(error: unknown): void {
   const message = error instanceof Error ? error.message : String(error);
   runLabel.textContent = message;
   console.error(error);
+}
+
+function setMode(nextMode: "motion" | "rig"): void {
+  mode = nextMode;
+  const isRig = mode === "rig";
+  motionModeButton.classList.toggle("active", !isRig);
+  rigModeButton.classList.toggle("active", isRig);
+  motionPanel.hidden = isRig;
+  rigPanel.hidden = !isRig;
+  document.body.classList.toggle("rig-mode", isRig);
+  rigBuilder.setVisible(isRig);
+
+  if (isRig) {
+    window.history.replaceState(null, "", "?mode=rig");
+    runLabel.textContent = "Rig Builder";
+    playing = false;
+    playPauseButton.textContent = "Play";
+    renderCurrentRigFrame();
+  } else {
+    window.history.replaceState(null, "", `?run=${encodeURIComponent(runName)}&mode=motion`);
+    debugLine.visible = debugInput.checked;
+    if (animation) {
+      renderCurrentFrame();
+    }
+  }
+}
+
+function renderJointButtons(): void {
+  jointButtons.innerHTML = "";
+  for (const joint of JOINT_NAMES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = joint.replace(/([A-Z])/g, " $1").trim();
+    button.dataset.joint = joint;
+    button.addEventListener("click", () => {
+      rigBuilder.selectJoint(joint);
+      updateRigPanel(rigBuilder.getRig());
+    });
+    jointButtons.appendChild(button);
+  }
+}
+
+function updateRigPanel(rig: RigFile): void {
+  const selectedJoint = rigBuilder.getSelectedJoint();
+  selectedJointLabel.textContent = selectedJoint;
+  rigCountLabel.textContent = `${rigBuilder.getPlacedCount()} / ${JOINT_NAMES.length}`;
+  for (const button of jointButtons.querySelectorAll<HTMLButtonElement>("button")) {
+    const joint = button.dataset.joint as JointName;
+    button.classList.toggle("active", joint === selectedJoint);
+    button.classList.toggle("placed", Boolean(rig.joints[joint]));
+  }
+}
+
+function downloadJson(filename: string, payload: unknown): void {
+  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }

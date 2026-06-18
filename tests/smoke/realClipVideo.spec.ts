@@ -24,7 +24,7 @@ test("records real Pexels clip animation playback", async ({ page }) => {
     throw new Error("Playwright did not produce a video artifact");
   }
 
-  const outputDir = path.resolve("docs/screenshots/v0.1.1");
+  const outputDir = path.resolve("docs/screenshots/v1.0.0");
   mkdirSync(outputDir, { recursive: true });
   copyFileSync(videoPath, path.join(outputDir, "pexels-5586522-viewer-playback.webm"));
 });

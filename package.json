@@ -1,7 +1,7 @@
 {
   "name": "hoop-motion",
-  "version": "0.1.1",
-  "description": "Convert short basketball videos into Three.js-playable humanoid motion.",
+  "version": "1.0.0",
+  "description": "Extract basketball pose motion and author Three.js humanoid rig profiles.",
   "type": "module",
   "private": false,
   "scripts": {
@@ -28,7 +28,7 @@
     "process:pexels:5586522": "tsx scripts/runPipeline.ts --input data/input/pexels_basketball_5586522.mp4 --name pexels-5586522 --max-frames 150",
     "process:pexels:5192069": "tsx scripts/runPipeline.ts --input data/input/pexels_basketball_5192069.mp4 --name pexels-5192069 --max-frames 150",
     "process:pexels": "npm run samples:download && npm run process:pexels:5586522 && npm run process:pexels:5192069",
-    "screenshots": "playwright test tests/smoke/viewer.spec.ts --project=chromium",
+    "screenshots": "playwright test tests/smoke/viewer.spec.ts tests/smoke/rigBuilder.spec.ts --project=chromium",
     "record:pexels": "playwright test tests/smoke/realClipVideo.spec.ts --project=chromium",
     "smoke": "npm run python:setup && npm run model:sample && npm run fixture && npm run process:fixtures && npm run typecheck && npm run test && npm run build && npm run screenshots"
   },

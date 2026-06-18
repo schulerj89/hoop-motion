@@ -1,0 +1,293 @@
+{
+  "schemaVersion": "hoopmotion.rig.v1",
+  "name": "hoopbot.glb-rig",
+  "generatedAt": "2026-06-18T18:34:16.767Z",
+  "modelUrl": "/models/hoopbot.glb",
+  "modelName": "hoopbot.glb",
+  "authoringPose": "t-pose",
+  "joints": {
+    "Hips": {
+      "joint": "Hips",
+      "position": [
+        0,
+        -0.020000000000000018,
+        0
+      ],
+      "source": "auto"
+    },
+    "Chest": {
+      "joint": "Chest",
+      "position": [
+        0,
+        0.21999999999999997,
+        0
+      ],
+      "source": "auto"
+    },
+    "Neck": {
+      "joint": "Neck",
+      "position": [
+        0,
+        0.31999999999999995,
+        0
+      ],
+      "source": "auto"
+    },
+    "Head": {
+      "joint": "Head",
+      "position": [
+        0,
+        0.42000000000000004,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftShoulder": {
+      "joint": "LeftShoulder",
+      "position": [
+        -0.28,
+        0.25,
+        0
+      ],
+      "source": "auto"
+    },
+    "RightShoulder": {
+      "joint": "RightShoulder",
+      "position": [
+        0.28,
+        0.25,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftElbow": {
+      "joint": "LeftElbow",
+      "position": [
+        -0.46,
+        0.12,
+        0
+      ],
+      "source": "auto"
+    },
+    "RightElbow": {
+      "joint": "RightElbow",
+      "position": [
+        0.46,
+        0.12,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftWrist": {
+      "joint": "LeftWrist",
+      "position": [
+        -0.63,
+        0.010000000000000009,
+        0
+      ],
+      "source": "auto"
+    },
+    "RightWrist": {
+      "joint": "RightWrist",
+      "position": [
+        0.63,
+        0.010000000000000009,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftHip": {
+      "joint": "LeftHip",
+      "position": [
+        -0.16,
+        -0.030000000000000027,
+        0
+      ],
+      "source": "auto"
+    },
+    "RightHip": {
+      "joint": "RightHip",
+      "position": [
+        0.16,
+        -0.030000000000000027,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftKnee": {
+      "joint": "LeftKnee",
+      "position": [
+        -0.184,
+        -0.25,
+        0
+      ],
+      "source": "auto"
+    },
+    "RightKnee": {
+      "joint": "RightKnee",
+      "position": [
+        0.184,
+        -0.25,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftAnkle": {
+      "joint": "LeftAnkle",
+      "position": [
+        -0.184,
+        -0.45,
+        0
+      ],
+      "source": "auto"
+    },
+    "RightAnkle": {
+      "joint": "RightAnkle",
+      "position": [
+        0.184,
+        -0.45,
+        0
+      ],
+      "source": "auto"
+    },
+    "LeftFoot": {
+      "joint": "LeftFoot",
+      "position": [
+        -0.23199999999999998,
+        -0.48,
+        0.06
+      ],
+      "source": "auto"
+    },
+    "RightFoot": {
+      "joint": "RightFoot",
+      "position": [
+        0.23199999999999998,
+        -0.48,
+        0.06
+      ],
+      "source": "auto"
+    }
+  },
+  "bones": [
+    {
+      "name": "spine",
+      "from": "Hips",
+      "to": "Chest",
+      "segmentName": "Segment_Spine",
+      "thickness": 0.26
+    },
+    {
+      "name": "neck",
+      "from": "Chest",
+      "to": "Neck",
+      "segmentName": "Segment_Neck",
+      "thickness": 0.16
+    },
+    {
+      "name": "head",
+      "from": "Neck",
+      "to": "Head",
+      "segmentName": "Segment_Head",
+      "thickness": 0.22
+    },
+    {
+      "name": "left-clavicle",
+      "from": "Chest",
+      "to": "LeftShoulder",
+      "segmentName": "Segment_LeftClavicle",
+      "thickness": 0.11
+    },
+    {
+      "name": "right-clavicle",
+      "from": "Chest",
+      "to": "RightShoulder",
+      "segmentName": "Segment_RightClavicle",
+      "thickness": 0.11
+    },
+    {
+      "name": "left-upper-arm",
+      "from": "LeftShoulder",
+      "to": "LeftElbow",
+      "segmentName": "Segment_LeftUpperArm",
+      "thickness": 0.11
+    },
+    {
+      "name": "left-forearm",
+      "from": "LeftElbow",
+      "to": "LeftWrist",
+      "segmentName": "Segment_LeftForeArm",
+      "thickness": 0.095
+    },
+    {
+      "name": "right-upper-arm",
+      "from": "RightShoulder",
+      "to": "RightElbow",
+      "segmentName": "Segment_RightUpperArm",
+      "thickness": 0.11
+    },
+    {
+      "name": "right-forearm",
+      "from": "RightElbow",
+      "to": "RightWrist",
+      "segmentName": "Segment_RightForeArm",
+      "thickness": 0.095
+    },
+    {
+      "name": "left-hip",
+      "from": "Hips",
+      "to": "LeftHip",
+      "segmentName": "Segment_LeftHip",
+      "thickness": 0.16
+    },
+    {
+      "name": "right-hip",
+      "from": "Hips",
+      "to": "RightHip",
+      "segmentName": "Segment_RightHip",
+      "thickness": 0.16
+    },
+    {
+      "name": "left-thigh",
+      "from": "LeftHip",
+      "to": "LeftKnee",
+      "segmentName": "Segment_LeftThigh",
+      "thickness": 0.14
+    },
+    {
+      "name": "left-shin",
+      "from": "LeftKnee",
+      "to": "LeftAnkle",
+      "segmentName": "Segment_LeftShin",
+      "thickness": 0.12
+    },
+    {
+      "name": "left-foot",
+      "from": "LeftAnkle",
+      "to": "LeftFoot",
+      "segmentName": "Segment_LeftFoot",
+      "thickness": 0.095
+    },
+    {
+      "name": "right-thigh",
+      "from": "RightHip",
+      "to": "RightKnee",
+      "segmentName": "Segment_RightThigh",
+      "thickness": 0.14
+    },
+    {
+      "name": "right-shin",
+      "from": "RightKnee",
+      "to": "RightAnkle",
+      "segmentName": "Segment_RightShin",
+      "thickness": 0.12
+    },
+    {
+      "name": "right-foot",
+      "from": "RightAnkle",
+      "to": "RightFoot",
+      "segmentName": "Segment_RightFoot",
+      "thickness": 0.095
+    }
+  ]
+}

@@ -2,7 +2,15 @@
 
 HoopMotion is an MVP pipeline that turns a short basketball MP4 into JSON motion data and plays it on a humanoid model in a local Three.js viewer.
 
-The first release prioritizes end-to-end proof over production animation quality:
+Version 1 adds a Rig Builder for authoring a skeleton/retarget profile on a GLB/GLTF model:
+
+1. Load a model in A-pose, T-pose, or a neutral stance.
+2. Select a canonical joint.
+3. Click the model to place a marker for that joint.
+4. Auto-place a starter skeleton from model bounds.
+5. Export `rig.json` or a retarget package for downstream animation work.
+
+The app still prioritizes end-to-end proof over production animation quality:
 
 1. Drop an MP4 into `data/input/`.
 2. Run one command.
@@ -56,6 +64,28 @@ npm run dev
 ```
 
 Open [http://127.0.0.1:5173/?run=my-jump-shot](http://127.0.0.1:5173/?run=my-jump-shot).
+
+## Build A Skeleton Profile
+
+Start the app:
+
+```powershell
+npm run dev
+```
+
+Open [http://127.0.0.1:5173/?mode=rig](http://127.0.0.1:5173/?mode=rig).
+
+Rig Builder supports:
+
+- GLB/GLTF file loading.
+- Model URL loading.
+- Auto A/T-pose marker placement.
+- Per-joint marker selection and click placement on the model.
+- Transform-handle marker adjustment.
+- `rig.json` import/export.
+- Retarget package export.
+
+Clicked markers define a HoopMotion retarget sidecar. They do not create skin weights for an unrigged mesh. If a character is not rigged, use Mixamo, AccuRIG, or Blender first, then use HoopMotion to author/validate the retarget profile.
 
 ## Real Pexels Samples
 
@@ -112,4 +142,4 @@ Use self-recorded footage or royalty-free clips from Pexels or Pixabay. Keep cli
 
 ## Versioning
 
-HoopMotion uses semantic versioning: major, minor, patch. Each release should update `package.json`, add a `CHANGELOG.md` entry, run smoke tests, capture versioned screenshots under `docs/screenshots/<version>/`, commit, tag, and push.
+HoopMotion uses semantic versioning: major, minor, patch. Each release should update `package.json`, add a `CHANGELOG.md` entry, run smoke tests, capture versioned screenshots under `docs/screenshots/<version>/`, export versioned artifacts under `docs/artifacts/<version>/`, commit, tag, and push.

@@ -11,6 +11,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -120,11 +124,22 @@ h2 {
 }
 
 .run-picker,
-.controls {
+.controls,
+.mode-tabs {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.mode-tabs button {
+  background: #1a2025;
+}
+
+.mode-tabs button.active {
+  background: #f09839;
+  color: #101418;
+  border-color: #f6bb73;
 }
 
 .run-picker input {
@@ -178,6 +193,91 @@ input[type="range"] {
 .report-panel {
   padding: 18px;
   background: #171d21;
+}
+
+.rig-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.rig-row,
+.rig-actions,
+.rig-status {
+  display: flex;
+  gap: 8px;
+}
+
+.rig-row input {
+  min-width: 0;
+  width: 100%;
+}
+
+.rig-actions {
+  flex-wrap: wrap;
+}
+
+.rig-actions button {
+  flex: 1 1 120px;
+}
+
+.file-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #384047;
+  border-radius: 6px;
+  background: #1a2025;
+  color: #dce4df;
+}
+
+.file-button input {
+  max-width: 120px;
+  color: #aeb8bd;
+}
+
+.rig-status {
+  justify-content: space-between;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.joint-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.joint-grid button {
+  min-height: 32px;
+  padding: 0 8px;
+  overflow: hidden;
+  background: #1a2025;
+  color: #dce4df;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.joint-grid button.active {
+  background: #236f5a;
+  border-color: #79ffb1;
+}
+
+.joint-grid button.placed::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #f09839;
+}
+
+.rig-mode .timeline-row {
+  opacity: 0.55;
 }
 
 dl {

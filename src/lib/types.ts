@@ -100,3 +100,27 @@ export interface AnimationFile {
   report: ValidationReport;
   frames: AnimationFrame[];
 }
+
+export interface RigJointMarker {
+  joint: JointName;
+  position: Vec3;
+  source: "auto" | "click" | "import";
+}
+
+export interface RigFile {
+  schemaVersion: "hoopmotion.rig.v1";
+  name: string;
+  generatedAt: string;
+  modelUrl?: string;
+  modelName?: string;
+  authoringPose: "a-pose" | "t-pose" | "custom";
+  joints: Partial<Record<JointName, RigJointMarker>>;
+  bones: BoneDefinition[];
+}
+
+export interface RetargetPackageFile {
+  schemaVersion: "hoopmotion.retarget-package.v1";
+  generatedAt: string;
+  rig: RigFile;
+  animation?: AnimationFile;
+}
