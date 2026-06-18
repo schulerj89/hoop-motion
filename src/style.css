@@ -205,7 +205,8 @@ input[type="range"] {
 
 .rig-row,
 .rig-actions,
-.rig-status {
+.rig-status,
+.rig-transform-target {
   display: flex;
   gap: 8px;
 }
@@ -219,8 +220,26 @@ input[type="range"] {
   flex-wrap: wrap;
 }
 
-.rig-actions button {
+.rig-actions button,
+.rig-transform-target button {
   flex: 1 1 120px;
+}
+
+.rig-transform-target button {
+  background: #1a2025;
+}
+
+.rig-transform-target button.active {
+  background: #7dffcf;
+  color: #101418;
+  border-color: #b9f6ff;
+}
+
+.rig-model-transform {
+  padding: 8px 0;
+  color: #aeb8bd;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
 .file-button {

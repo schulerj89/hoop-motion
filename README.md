@@ -79,6 +79,7 @@ Rig Builder supports:
 
 - GLB/GLTF file loading.
 - Model URL loading.
+- Model-root translate, rotate, and scale controls for positioning imported characters.
 - Auto A/T-pose marker placement.
 - Per-joint marker selection and click placement on the model.
 - Transform-handle marker adjustment.

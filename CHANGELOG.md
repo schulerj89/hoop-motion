@@ -2,6 +2,17 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.1.1 - 2026-06-18
+
+### Fixed
+
+- Added an explicit Rig Builder `Move Model` transform target so imported GLB models can be translated, rotated, or scaled directly.
+- Kept placed rig markers aligned when the model root is transformed after auto-rigging or marker placement.
+
+### Added
+
+- Patch screenshots proving imported-model transform behavior with the recent local Downloads GLB when available.
+
 ## 1.1.0 - 2026-06-18
 
 ### Changed

@@ -4,6 +4,7 @@ import {
   Group,
   LineBasicMaterial,
   LineSegments,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
@@ -22,6 +23,8 @@ import { BONES, JOINT_NAMES } from "./skeleton";
 import type { JointName, RigFile, Vec3 } from "./types";
 
 const HIDDEN_POINT = new Vector3(0, -1000, 0);
+type TransformTarget = "model" | "joint";
+type TransformMode = "translate" | "rotate" | "scale";
 
 export class RigBuilderScene {
   readonly transformControls: TransformControls;
@@ -44,8 +47,11 @@ export class RigBuilderScene {
   private active = false;
   private modelUrl = "/models/posebot.glb";
   private modelName = "posebot.glb";
+  private transformTarget: TransformTarget = "model";
+  private transformMode: TransformMode = "translate";
   private onChange: (rig: RigFile) => void;
   private readonly transformHelper: Object3D;
+  private readonly previousModelMatrixWorld = new Matrix4();
 
   constructor(
     scene: Scene,
@@ -63,9 +69,10 @@ export class RigBuilderScene {
     this.markerGroup.renderOrder = 30;
     this.scene.add(this.modelRoot, this.markerGroup, this.rigLine);
     this.transformControls = new TransformControls(camera, renderer.domElement);
+    this.transformControls.setMode(this.transformMode);
     this.transformHelper = this.transformControls.getHelper();
     this.transformHelper.visible = false;
-    this.transformControls.addEventListener("objectChange", () => this.syncAttachedMarker());
+    this.transformControls.addEventListener("objectChange", () => this.syncTransformObject());
     this.scene.add(this.transformHelper);
     this.stage.addEventListener("pointerdown", (event) => this.onPointerDown(event));
     this.setVisible(false);
@@ -97,16 +104,51 @@ export class RigBuilderScene {
 
   selectJoint(joint: JointName): void {
     this.selectedJoint = joint;
+    this.transformTarget = "joint";
     this.refreshMarkerMaterials();
-    const marker = this.getMarker(joint);
-    if (marker) {
-      this.transformControls.attach(marker);
-      this.transformHelper.visible = this.active;
-    }
+    this.attachSelectedMarker();
+    this.onChange(this.rig);
+  }
+
+  selectJointTarget(): void {
+    this.transformTarget = "joint";
+    this.attachSelectedMarker();
+    this.onChange(this.rig);
+  }
+
+  selectModel(): void {
+    this.transformTarget = "model";
+    this.transformControls.attach(this.modelRoot);
+    this.captureModelMatrix();
+    this.transformHelper.visible = this.active;
+    this.onChange(this.rig);
   }
 
   getSelectedJoint(): JointName {
     return this.selectedJoint;
+  }
+
+  getTransformTarget(): TransformTarget {
+    return this.transformTarget;
+  }
+
+  getTransformMode(): TransformMode {
+    return this.transformMode;
+  }
+
+  setTransformMode(mode: TransformMode): void {
+    this.transformMode = mode;
+    this.transformControls.setMode(mode);
+  }
+
+  getModelPosition(): Vec3 {
+    return toVec3(this.modelRoot.position);
+  }
+
+  translateModel(offset: Vec3): void {
+    this.selectModel();
+    this.modelRoot.position.add(new Vector3(offset[0], offset[1], offset[2]));
+    this.syncModelTransform();
   }
 
   getRig(): RigFile {
@@ -131,23 +173,33 @@ export class RigBuilderScene {
       }
       this.createOrUpdateMarker(joint, marker.position);
     }
-    this.selectJoint(this.selectedJoint);
+    if (this.transformTarget === "model") {
+      this.selectModel();
+    } else {
+      this.attachSelectedMarker();
+    }
     this.updateRigLine();
     this.onChange(this.rig);
   }
 
   private replaceModel(model: Object3D): void {
+    this.transformControls.detach();
     this.scene.remove(this.modelRoot);
     this.modelRoot = new Group();
     this.modelRoot.name = "KineRig_RigModelRoot";
     this.modelRoot.add(model);
     this.scene.add(this.modelRoot);
     this.modelRoot.visible = this.active;
+    this.transformTarget = "model";
     this.applyRig(createEmptyRig(`${this.modelName}-rig`, this.modelUrl, this.modelName));
+    this.selectModel();
   }
 
   private onPointerDown(event: PointerEvent): void {
     if (!this.active || this.transformControls.dragging || event.button !== 0) {
+      return;
+    }
+    if (this.transformTarget === "model") {
       return;
     }
     this.setPointer(event);
@@ -177,6 +229,14 @@ export class RigBuilderScene {
     this.raycaster.setFromCamera(this.pointer, this.camera);
   }
 
+  private syncTransformObject(): void {
+    if (this.transformControls.object === this.modelRoot) {
+      this.syncModelTransform();
+      return;
+    }
+    this.syncAttachedMarker();
+  }
+
   private syncAttachedMarker(): void {
     const object = this.transformControls.object;
     const joint = object?.userData.joint as JointName | undefined;
@@ -186,6 +246,57 @@ export class RigBuilderScene {
     this.rig = withJointMarker(this.rig, joint, toVec3(object.position), "click");
     this.updateRigLine();
     this.onChange(this.rig);
+  }
+
+  private syncModelTransform(): void {
+    const previous = this.previousModelMatrixWorld.clone();
+    this.modelRoot.updateMatrixWorld(true);
+    const next = this.modelRoot.matrixWorld.clone();
+    const delta = next.clone().multiply(previous.invert());
+    this.previousModelMatrixWorld.copy(next);
+
+    if (this.getPlacedCount() > 0) {
+      this.applyDeltaToMarkers(delta);
+      this.updateRigLine();
+    }
+    this.onChange(this.rig);
+  }
+
+  private applyDeltaToMarkers(delta: Matrix4): void {
+    const joints: RigFile["joints"] = {};
+    for (const joint of JOINT_NAMES) {
+      const marker = this.getMarker(joint);
+      if (!marker) {
+        continue;
+      }
+      marker.position.applyMatrix4(delta);
+      joints[joint] = {
+        joint,
+        position: toVec3(marker.position),
+        source: this.rig.joints[joint]?.source ?? "click"
+      };
+    }
+    this.rig = {
+      ...this.rig,
+      generatedAt: new Date().toISOString(),
+      joints
+    };
+  }
+
+  private attachSelectedMarker(): void {
+    const marker = this.getMarker(this.selectedJoint);
+    if (!marker) {
+      this.transformControls.detach();
+      this.transformHelper.visible = false;
+      return;
+    }
+    this.transformControls.attach(marker);
+    this.transformHelper.visible = this.active;
+  }
+
+  private captureModelMatrix(): void {
+    this.modelRoot.updateMatrixWorld(true);
+    this.previousModelMatrixWorld.copy(this.modelRoot.matrixWorld);
   }
 
   private createOrUpdateMarker(joint: JointName, position: Vec3): Mesh {

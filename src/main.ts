@@ -26,6 +26,11 @@ declare global {
   interface Window {
     __KINERIG_READY?: boolean;
     __KINERIG_RIG_READY?: boolean;
+    __KINERIG_RIG_TEST_API?: {
+      getModelPosition: () => [number, number, number];
+      getTransformTarget: () => string;
+      translateModel: (offset: [number, number, number]) => void;
+    };
   }
 }
 
@@ -86,6 +91,15 @@ app.innerHTML = `
           <span>GLB File</span>
           <input id="rigModelFile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" />
         </label>
+        <div class="rig-transform-target">
+          <button id="moveModel" type="button">Move Model</button>
+          <button id="placeJoints" type="button">Place Joints</button>
+        </div>
+        <select id="transformMode" aria-label="Transform mode">
+          <option value="translate" selected>Translate</option>
+          <option value="rotate">Rotate</option>
+          <option value="scale">Scale</option>
+        </select>
         <div class="rig-actions">
           <button id="autoRig" type="button">Auto A/T</button>
           <button id="exportRig" type="button">Export Rig</button>
@@ -99,6 +113,7 @@ app.innerHTML = `
           <span id="selectedJointLabel">Hips</span>
           <span id="rigCountLabel">0 / 18</span>
         </div>
+        <div id="modelTransformLabel" class="rig-model-transform">Model X 0.00 Y 0.00 Z 0.00</div>
         <div id="jointButtons" class="joint-grid"></div>
       </section>
     </aside>
@@ -123,12 +138,16 @@ const rigPanel = document.querySelector<HTMLElement>("#rigPanel")!;
 const rigModelUrl = document.querySelector<HTMLInputElement>("#rigModelUrl")!;
 const loadRigModelButton = document.querySelector<HTMLButtonElement>("#loadRigModel")!;
 const rigModelFile = document.querySelector<HTMLInputElement>("#rigModelFile")!;
+const moveModelButton = document.querySelector<HTMLButtonElement>("#moveModel")!;
+const placeJointsButton = document.querySelector<HTMLButtonElement>("#placeJoints")!;
+const transformModeSelect = document.querySelector<HTMLSelectElement>("#transformMode")!;
 const autoRigButton = document.querySelector<HTMLButtonElement>("#autoRig")!;
 const exportRigButton = document.querySelector<HTMLButtonElement>("#exportRig")!;
 const exportPackageButton = document.querySelector<HTMLButtonElement>("#exportPackage")!;
 const importRigInput = document.querySelector<HTMLInputElement>("#importRig")!;
 const selectedJointLabel = document.querySelector<HTMLSpanElement>("#selectedJointLabel")!;
 const rigCountLabel = document.querySelector<HTMLSpanElement>("#rigCountLabel")!;
+const modelTransformLabel = document.querySelector<HTMLDivElement>("#modelTransformLabel")!;
 const jointButtons = document.querySelector<HTMLDivElement>("#jointButtons")!;
 
 const scene = new Scene();
@@ -179,6 +198,14 @@ let playing = true;
 let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-reach";
 let loading = false;
 const rigBuilder = new RigBuilderScene(scene, camera, renderer, stage, updateRigPanel);
+window.__KINERIG_RIG_TEST_API = {
+  getModelPosition: () => rigBuilder.getModelPosition(),
+  getTransformTarget: () => rigBuilder.getTransformTarget(),
+  translateModel: (offset) => {
+    rigBuilder.translateModel(offset);
+    renderCurrentRigFrame();
+  }
+};
 
 runInput.value = runName;
 renderJointButtons();
@@ -236,6 +263,7 @@ rigModelFile.addEventListener("change", () => {
     return;
   }
   setMode("rig");
+  window.__KINERIG_RIG_READY = false;
   rigBuilder.loadModelFromFile(file)
     .then(() => {
       rigModelUrl.value = file.name;
@@ -244,6 +272,23 @@ rigModelFile.addEventListener("change", () => {
       renderCurrentRigFrame();
     })
     .catch(showError);
+});
+
+moveModelButton.addEventListener("click", () => {
+  rigBuilder.selectModel();
+  updateRigPanel(rigBuilder.getRig());
+  renderCurrentRigFrame();
+});
+
+placeJointsButton.addEventListener("click", () => {
+  rigBuilder.selectJointTarget();
+  updateRigPanel(rigBuilder.getRig());
+  renderCurrentRigFrame();
+});
+
+transformModeSelect.addEventListener("change", () => {
+  rigBuilder.setTransformMode(transformModeSelect.value as "translate" | "rotate" | "scale");
+  updateRigPanel(rigBuilder.getRig());
 });
 
 autoRigButton.addEventListener("click", () => {
@@ -434,8 +479,14 @@ function renderJointButtons(): void {
 
 function updateRigPanel(rig: RigFile): void {
   const selectedJoint = rigBuilder.getSelectedJoint();
-  selectedJointLabel.textContent = selectedJoint;
+  const transformTarget = rigBuilder.getTransformTarget();
+  selectedJointLabel.textContent = transformTarget === "model" ? "Model" : selectedJoint;
   rigCountLabel.textContent = `${rigBuilder.getPlacedCount()} / ${JOINT_NAMES.length}`;
+  moveModelButton.classList.toggle("active", transformTarget === "model");
+  placeJointsButton.classList.toggle("active", transformTarget === "joint");
+  transformModeSelect.value = rigBuilder.getTransformMode();
+  const modelPosition = rigBuilder.getModelPosition();
+  modelTransformLabel.textContent = `Model X ${modelPosition[0].toFixed(2)} Y ${modelPosition[1].toFixed(2)} Z ${modelPosition[2].toFixed(2)}`;
   for (const button of jointButtons.querySelectorAll<HTMLButtonElement>("button")) {
     const joint = button.dataset.joint as JointName;
     button.classList.toggle("active", joint === selectedJoint);
