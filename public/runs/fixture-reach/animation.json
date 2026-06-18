@@ -1,7 +1,7 @@
 {
   "schemaVersion": "kinerig.animation.v1",
   "sourceVideo": "data/input/fixture_reach.mp4",
-  "generatedAt": "2026-06-18T20:51:56.543Z",
+  "generatedAt": "2026-06-18T21:46:34.364Z",
   "synthetic": true,
   "fps": 30,
   "durationMs": 2966,
@@ -150,7 +150,7 @@
   "report": {
     "schemaVersion": "kinerig.report.v1",
     "sourceVideo": "data/input/fixture_reach.mp4",
-    "generatedAt": "2026-06-18T20:51:56.542Z",
+    "generatedAt": "2026-06-18T21:46:34.363Z",
     "synthetic": true,
     "fps": 30,
     "framesProcessed": 90,

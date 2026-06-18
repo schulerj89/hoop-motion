@@ -30,7 +30,8 @@ select {
 
 button,
 select,
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
   min-height: 38px;
   border: 1px solid #384047;
   border-radius: 6px;
@@ -77,12 +78,18 @@ button {
   background: #236f5a;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 button:hover {
   background: #2e866d;
 }
 
 select,
-input[type="text"] {
+input[type="text"],
+input[type="number"] {
   padding: 0 10px;
 }
 
@@ -238,6 +245,27 @@ input[type="range"] {
 .rig-panel {
   display: grid;
   gap: 12px;
+}
+
+.acquire-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.field-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.field-stack span {
+  color: #aeb8bd;
+  font-size: 12px;
+}
+
+.split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .rig-row,
@@ -405,6 +433,91 @@ dd a {
   color: #aeb8bd;
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+.key-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.key-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid #384047;
+  border-radius: 6px;
+  background: #1a2025;
+  color: #dce4df;
+  font-size: 12px;
+}
+
+.key-pill.ready {
+  border-color: #7dffcf;
+}
+
+.key-pill.missing {
+  border-color: #c78355;
+}
+
+.key-pill small {
+  color: #aeb8bd;
+  font-size: 10px;
+}
+
+.candidate-list {
+  display: grid;
+  gap: 8px;
+}
+
+.candidate-card {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  min-height: 58px;
+  padding: 6px;
+  border-color: #384047;
+  background: #1a2025;
+  text-align: left;
+}
+
+.candidate-card.active {
+  border-color: #7dffcf;
+  background: #20332f;
+}
+
+.candidate-card img {
+  width: 58px;
+  height: 46px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #101418;
+}
+
+.candidate-card span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.candidate-card strong,
+.candidate-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.candidate-card strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.candidate-card small {
+  color: #aeb8bd;
+  font-size: 11px;
 }
 
 @media (max-width: 860px) {

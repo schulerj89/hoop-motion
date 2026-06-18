@@ -410,6 +410,62 @@ function loadLocalEnv(): void {
       }
     }
   }
+  loadTextCredential("PEXELS_API_KEY", ["pexel_key.txt", "pexels_key.txt"]);
+  loadTextCredential("PIXABAY_API_KEY", ["pixabay_key.txt"]);
+}
+
+function loadTextCredential(envName: string, fileNames: string[]): void {
+  if (process.env[envName]) {
+    return;
+  }
+  const roots = [path.resolve(".."), path.resolve(".")];
+  for (const root of roots) {
+    for (const fileName of fileNames) {
+      const filePath = path.join(root, fileName);
+      if (!existsSync(filePath)) {
+        continue;
+      }
+      const value = parseCredentialText(readFileSync(filePath, "utf8"), envName);
+      if (value) {
+        process.env[envName] = value;
+        return;
+      }
+    }
+  }
+}
+
+function parseCredentialText(content: string, envName: string): string | undefined {
+  const acceptedKeys = getCredentialKeyAliases(envName);
+  for (const line of content.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
+    const separator = trimmed.indexOf("=");
+    if (separator !== -1) {
+      const key = trimmed.slice(0, separator).trim();
+      const value = trimmed.slice(separator + 1).trim().replace(/^["']|["']$/g, "");
+      if (acceptedKeys.has(key) && value) {
+        return value;
+      }
+      continue;
+    }
+    return trimmed.replace(/^["']|["']$/g, "");
+  }
+  return undefined;
+}
+
+function getCredentialKeyAliases(envName: string): Set<string> {
+  const aliases = new Set([envName, "API_KEY"]);
+  if (envName === "PEXELS_API_KEY") {
+    aliases.add("PEXEL_API_KEY");
+    aliases.add("PEXELS_KEY");
+    aliases.add("PEXEL_KEY");
+  }
+  if (envName === "PIXABAY_API_KEY") {
+    aliases.add("PIXABAY_KEY");
+  }
+  return aliases;
 }
 
 main().catch((error: unknown) => {

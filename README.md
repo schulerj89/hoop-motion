@@ -106,6 +106,33 @@ Open the app, select the run from Motion Library, then use Rig Builder `Preview 
 
 Do not use this as a bulk downloader. Review each source page and license metadata before publishing commercial work, especially clips with recognizable people, brands, minors, crowds, or sensitive contexts.
 
+### Acquire From The UI
+
+Start the app:
+
+```powershell
+npm run dev
+```
+
+Open [http://127.0.0.1:5173/?mode=acquire](http://127.0.0.1:5173/?mode=acquire).
+
+The `Acquire` screen:
+
+- Shows whether local Pexels/Pixabay key files were found.
+- Searches stock video providers from the browser without exposing keys to the browser bundle.
+- Lets you select one candidate.
+- Downloads and processes the selected MP4 into a KineRig run.
+- Refreshes Motion Library and offers direct `Open Motion` or `Preview In Rig` handoff buttons.
+
+Credential txt files are supported from the parent Projects folder:
+
+```text
+C:\Users\joshs\Projects\pexel_key.txt
+C:\Users\joshs\Projects\pixabay_key.txt
+```
+
+Each file can contain a raw key or a simple assignment such as `PEXELS_API_KEY=...`, `PEXEL_API_KEY=...`, `PIXABAY_API_KEY=...`, or `API_KEY=...`.
+
 ## Build A Skeleton Profile
 
 Start the app:

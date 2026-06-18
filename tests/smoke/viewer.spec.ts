@@ -12,7 +12,7 @@ test("loads fixture animation and captures versioned screenshots", async ({ page
   await expect(page.locator("#runLibrary")).toContainText("fixture-reach");
   await page.waitForTimeout(300);
 
-  const screenshotDir = path.resolve("docs/screenshots/v1.2.0");
+  const screenshotDir = path.resolve("docs/screenshots/v1.3.0");
   mkdirSync(screenshotDir, { recursive: true });
   await page.screenshot({
     path: path.join(screenshotDir, "viewer-fixture-reach.png"),

@@ -1,6 +1,6 @@
 {
   "name": "kinerig-studio",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Extract human pose motion and author Three.js humanoid rig profiles.",
   "type": "module",
   "private": false,
@@ -27,7 +27,7 @@
     "process:fixture:wave": "tsx scripts/runPipeline.ts --input data/input/fixture_wave.mp4 --name fixture-wave --synthetic-on-fail",
     "process:fixture:side-step": "tsx scripts/runPipeline.ts --input data/input/fixture_side_step.mp4 --name fixture-side-step --synthetic-on-fail",
     "process:fixtures": "npm run process:fixture:reach && npm run process:fixture:wave && npm run process:fixture:side-step && npm run runs:index",
-    "screenshots": "playwright test tests/smoke/viewer.spec.ts tests/smoke/rigBuilder.spec.ts --project=chromium",
+    "screenshots": "playwright test tests/smoke/viewer.spec.ts tests/smoke/rigBuilder.spec.ts tests/smoke/acquire.spec.ts --project=chromium",
     "record:sample": "playwright test tests/smoke/realClipVideo.spec.ts --project=chromium",
     "smoke": "npm run python:setup && npm run model:sample && npm run fixture && npm run process:fixtures && npm run typecheck && npm run test && npm run build && npm run screenshots"
   },

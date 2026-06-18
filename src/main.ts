@@ -17,6 +17,7 @@ import {
 } from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { applyAnimationFrame, createSkeletonDebugLine } from "./lib/modelRig";
+import type { StockVideoCandidate } from "./lib/motionAcquisition";
 import { createRetargetPackage, sanitizeRigFile } from "./lib/rigAuthoring";
 import { RigBuilderScene } from "./lib/rigBuilderScene";
 import { JOINT_NAMES } from "./lib/skeleton";
@@ -63,6 +64,7 @@ app.innerHTML = `
         </div>
         <div class="mode-tabs" role="tablist" aria-label="Workspace mode">
           <button id="motionMode" class="active" type="button">Motion</button>
+          <button id="acquireMode" type="button">Acquire</button>
           <button id="rigMode" type="button">Rig Builder</button>
         </div>
         <div class="run-picker">
@@ -96,6 +98,46 @@ app.innerHTML = `
         <dl id="sourceList"></dl>
         <h2>Motion Library</h2>
         <div id="runLibrary" class="run-library"></div>
+      </section>
+      <section id="acquirePanel" class="acquire-panel" hidden>
+        <h2>Acquire Motion</h2>
+        <div id="acquireKeyStatus" class="key-status"></div>
+        <label class="field-stack">
+          <span>Provider</span>
+          <select id="acquireProvider" aria-label="Stock video provider">
+            <option value="pexels" selected>Pexels</option>
+            <option value="pixabay">Pixabay</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+        <label class="field-stack">
+          <span>Search</span>
+          <input id="acquireQuery" type="text" value="full body person walking" aria-label="Motion search query" />
+        </label>
+        <div class="split-row">
+          <label class="field-stack">
+            <span>Limit</span>
+            <input id="acquireLimit" type="number" min="1" max="12" value="6" aria-label="Search result limit" />
+          </label>
+          <label class="field-stack">
+            <span>Max Frames</span>
+            <input id="acquireMaxFrames" type="number" min="30" max="600" value="180" aria-label="Maximum frames to process" />
+          </label>
+        </div>
+        <label class="field-stack">
+          <span>Run Name</span>
+          <input id="acquireRunName" type="text" value="stock-walk" aria-label="Generated run name" />
+        </label>
+        <div class="rig-actions">
+          <button id="searchStock" type="button" data-tooltip="Search stock video APIs using local keys. No clips are downloaded until you process a selected candidate.">Search</button>
+          <button id="processStock" type="button" data-tooltip="Download the selected MP4, run pose extraction, write animation JSON, and refresh Motion Library.">Download + Process</button>
+        </div>
+        <div id="acquireStatus" class="rig-model-transform">Ready</div>
+        <div id="candidateList" class="candidate-list"></div>
+        <div class="rig-actions">
+          <button id="openProcessedMotion" type="button" disabled>Open Motion</button>
+          <button id="previewProcessedRig" type="button" disabled>Preview In Rig</button>
+        </div>
       </section>
       <section id="rigPanel" class="rig-panel" hidden>
         <h2>Rig Builder</h2>
@@ -143,6 +185,7 @@ app.innerHTML = `
 
 const stage = document.querySelector<HTMLDivElement>("#stage")!;
 const motionModeButton = document.querySelector<HTMLButtonElement>("#motionMode")!;
+const acquireModeButton = document.querySelector<HTMLButtonElement>("#acquireMode")!;
 const rigModeButton = document.querySelector<HTMLButtonElement>("#rigMode")!;
 const runInput = document.querySelector<HTMLInputElement>("#runInput")!;
 const runOptions = document.querySelector<HTMLDataListElement>("#runOptions")!;
@@ -158,7 +201,20 @@ const reportList = document.querySelector<HTMLElement>("#reportList")!;
 const sourceList = document.querySelector<HTMLElement>("#sourceList")!;
 const runLibrary = document.querySelector<HTMLDivElement>("#runLibrary")!;
 const motionPanel = document.querySelector<HTMLElement>("#motionPanel")!;
+const acquirePanel = document.querySelector<HTMLElement>("#acquirePanel")!;
 const rigPanel = document.querySelector<HTMLElement>("#rigPanel")!;
+const acquireKeyStatus = document.querySelector<HTMLDivElement>("#acquireKeyStatus")!;
+const acquireProvider = document.querySelector<HTMLSelectElement>("#acquireProvider")!;
+const acquireQuery = document.querySelector<HTMLInputElement>("#acquireQuery")!;
+const acquireLimit = document.querySelector<HTMLInputElement>("#acquireLimit")!;
+const acquireMaxFrames = document.querySelector<HTMLInputElement>("#acquireMaxFrames")!;
+const acquireRunName = document.querySelector<HTMLInputElement>("#acquireRunName")!;
+const searchStockButton = document.querySelector<HTMLButtonElement>("#searchStock")!;
+const processStockButton = document.querySelector<HTMLButtonElement>("#processStock")!;
+const acquireStatus = document.querySelector<HTMLDivElement>("#acquireStatus")!;
+const candidateList = document.querySelector<HTMLDivElement>("#candidateList")!;
+const openProcessedMotionButton = document.querySelector<HTMLButtonElement>("#openProcessedMotion")!;
+const previewProcessedRigButton = document.querySelector<HTMLButtonElement>("#previewProcessedRig")!;
 const rigModelUrl = document.querySelector<HTMLInputElement>("#rigModelUrl")!;
 const loadRigModelButton = document.querySelector<HTMLButtonElement>("#loadRigModel")!;
 const rigModelFile = document.querySelector<HTMLInputElement>("#rigModelFile")!;
@@ -217,11 +273,16 @@ const debugLine = createSkeletonDebugLine();
 scene.add(debugLine);
 
 const clock = new Clock();
-let mode: "motion" | "rig" = new URLSearchParams(window.location.search).get("mode") === "rig" ? "rig" : "motion";
+type AppMode = "motion" | "acquire" | "rig";
+const requestedMode = new URLSearchParams(window.location.search).get("mode");
+let mode: AppMode = requestedMode === "rig" || requestedMode === "acquire" ? requestedMode : "motion";
 let animation: AnimationFile | undefined;
 let rigPreviewAnimation: AnimationFile | undefined;
 let report: ValidationReport | undefined;
 let runIndex: MotionRunIndexFile | undefined;
+let candidates: StockVideoCandidate[] = [];
+let selectedCandidateIndex = 0;
+let processedRunName: string | undefined;
 let frameIndex = 0;
 let playing = true;
 let runName = new URLSearchParams(window.location.search).get("run") ?? "fixture-reach";
@@ -242,19 +303,47 @@ renderJointButtons();
 loadRunIndex().catch(() => {
   runLibrary.innerHTML = `<p class="muted">No run index found</p>`;
 });
+loadAcquireStatus().catch(showError);
 setMode(mode);
 if (mode === "rig") {
   loadRigAuthoringModel(rigModelUrl.value).catch(showError);
-} else {
+} else if (mode === "motion") {
   loadRun(runName).catch(showError);
 }
 
 motionModeButton.addEventListener("click", () => setMode("motion"));
+acquireModeButton.addEventListener("click", () => setMode("acquire"));
 rigModeButton.addEventListener("click", () => {
   setMode("rig");
   if (!rigBuilder.getPlacedCount()) {
     loadRigAuthoringModel(rigModelUrl.value).catch(showError);
   }
+});
+
+searchStockButton.addEventListener("click", () => {
+  searchStockVideos().catch(showError);
+});
+
+processStockButton.addEventListener("click", () => {
+  processSelectedCandidate().catch(showError);
+});
+
+openProcessedMotionButton.addEventListener("click", () => {
+  if (!processedRunName) {
+    return;
+  }
+  runInput.value = processedRunName;
+  setMode("motion");
+  loadRun(processedRunName).catch(showError);
+});
+
+previewProcessedRigButton.addEventListener("click", () => {
+  if (!processedRunName) {
+    return;
+  }
+  rigPreviewRunInput.value = processedRunName;
+  setMode("rig");
+  loadRigPreviewRun(processedRunName, true).catch(showError);
 });
 
 loadRunButton.addEventListener("click", () => {
@@ -478,6 +567,143 @@ async function loadRunIndex(): Promise<void> {
   window.__KINERIG_LIBRARY_READY = true;
 }
 
+async function loadAcquireStatus(): Promise<void> {
+  const response = await fetch("/api/acquire/status", { cache: "no-store" });
+  if (!response.ok) {
+    acquireKeyStatus.innerHTML = `<span class="key-pill missing">Local API unavailable</span>`;
+    return;
+  }
+  const payload = await response.json() as {
+    providers: Array<{ provider: string; configured: boolean; source?: string }>;
+  };
+  acquireKeyStatus.innerHTML = payload.providers
+    .map((provider) => `
+      <span class="key-pill ${provider.configured ? "ready" : "missing"}">
+        ${escapeHtml(provider.provider)} ${provider.configured ? "ready" : "missing"}
+        ${provider.source ? `<small>${escapeHtml(provider.source)}</small>` : ""}
+      </span>
+    `)
+    .join("");
+}
+
+async function searchStockVideos(): Promise<void> {
+  const query = acquireQuery.value.trim();
+  if (!query) {
+    acquireStatus.textContent = "Enter a search query.";
+    return;
+  }
+
+  setAcquireBusy(true, `Searching ${query}`);
+  const response = await fetch("/api/acquire/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      provider: acquireProvider.value,
+      limit: Number(acquireLimit.value)
+    })
+  });
+  const payload = await response.json() as {
+    candidates?: StockVideoCandidate[];
+    warnings?: string[];
+    error?: string;
+  };
+  if (!response.ok || payload.error) {
+    throw new Error(payload.error ?? "Stock video search failed");
+  }
+
+  candidates = payload.candidates ?? [];
+  selectedCandidateIndex = 0;
+  processedRunName = undefined;
+  openProcessedMotionButton.disabled = true;
+  previewProcessedRigButton.disabled = true;
+  renderCandidates(candidates);
+  const warning = payload.warnings?.[0] ? ` ${payload.warnings[0]}` : "";
+  setAcquireBusy(false, `Found ${candidates.length} candidates.${warning}`);
+}
+
+async function processSelectedCandidate(): Promise<void> {
+  const query = acquireQuery.value.trim();
+  const selected = candidates[selectedCandidateIndex];
+  if (!query || !selected) {
+    acquireStatus.textContent = "Search and select a candidate first.";
+    return;
+  }
+
+  const runName = acquireRunName.value.trim() || `${selected.provider}-${selected.id}`;
+  setAcquireBusy(true, `Processing ${runName}. This can take a minute.`);
+  const response = await fetch("/api/acquire/process", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      query,
+      provider: acquireProvider.value,
+      limit: Number(acquireLimit.value),
+      candidateIndex: selectedCandidateIndex,
+      runName,
+      maxFrames: acquireMaxFrames.value.trim()
+    })
+  });
+  const payload = await response.json() as {
+    runName?: string;
+    index?: MotionRunIndexFile;
+    error?: string;
+  };
+  if (!response.ok || payload.error) {
+    throw new Error(payload.error ?? "Stock video processing failed");
+  }
+
+  processedRunName = payload.runName ?? runName;
+  if (payload.index) {
+    runIndex = payload.index;
+    runOptions.innerHTML = runIndex.runs
+      .map((run) => `<option value="${escapeHtml(run.name)}"></option>`)
+      .join("");
+    renderRunLibrary(runIndex.runs);
+  } else {
+    await loadRunIndex();
+  }
+  runInput.value = processedRunName;
+  rigPreviewRunInput.value = processedRunName;
+  openProcessedMotionButton.disabled = false;
+  previewProcessedRigButton.disabled = false;
+  setAcquireBusy(false, `Processed ${processedRunName}. Open it in Motion or preview it on the rig.`);
+}
+
+function renderCandidates(nextCandidates: StockVideoCandidate[]): void {
+  candidateList.innerHTML = "";
+  if (nextCandidates.length === 0) {
+    candidateList.innerHTML = `<p class="muted">No candidates yet. Try a more specific full-body query.</p>`;
+    return;
+  }
+
+  nextCandidates.forEach((candidate, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "candidate-card";
+    button.classList.toggle("active", index === selectedCandidateIndex);
+    button.innerHTML = `
+      ${candidate.previewImageUrl ? `<img src="${escapeHtml(candidate.previewImageUrl)}" alt="" loading="lazy" />` : ""}
+      <span>
+        <strong>${escapeHtml(candidate.provider)} ${escapeHtml(candidate.id)}</strong>
+        <small>${formatCandidateMeta(candidate)}</small>
+      </span>
+    `;
+    button.addEventListener("click", () => {
+      selectedCandidateIndex = index;
+      acquireRunName.value = `${candidate.provider}-${candidate.id}`;
+      renderCandidates(candidates);
+    });
+    candidateList.appendChild(button);
+  });
+}
+
+function setAcquireBusy(busy: boolean, label: string): void {
+  searchStockButton.disabled = busy;
+  processStockButton.disabled = busy;
+  acquireStatus.textContent = label;
+}
+
 function render(): void {
   const delta = clock.getDelta();
   if (mode === "motion" && animation && playing && animation.frames.length > 0) {
@@ -585,12 +811,15 @@ function showError(error: unknown): void {
   console.error(error);
 }
 
-function setMode(nextMode: "motion" | "rig"): void {
+function setMode(nextMode: AppMode): void {
   mode = nextMode;
   const isRig = mode === "rig";
-  motionModeButton.classList.toggle("active", !isRig);
+  const isAcquire = mode === "acquire";
+  motionModeButton.classList.toggle("active", mode === "motion");
+  acquireModeButton.classList.toggle("active", isAcquire);
   rigModeButton.classList.toggle("active", isRig);
-  motionPanel.hidden = isRig;
+  motionPanel.hidden = isRig || isAcquire;
+  acquirePanel.hidden = !isAcquire;
   rigPanel.hidden = !isRig;
   document.body.classList.toggle("rig-mode", isRig);
   rigBuilder.setVisible(isRig);
@@ -601,6 +830,12 @@ function setMode(nextMode: "motion" | "rig"): void {
     playing = false;
     playPauseButton.textContent = "Play";
     renderCurrentRigFrame();
+  } else if (isAcquire) {
+    window.history.replaceState(null, "", "?mode=acquire");
+    runLabel.textContent = "Acquire Motion";
+    playing = false;
+    playPauseButton.textContent = "Play";
+    renderCurrentFrame();
   } else {
     window.history.replaceState(null, "", `?run=${encodeURIComponent(runName)}&mode=motion`);
     debugLine.visible = debugInput.checked;
@@ -674,6 +909,13 @@ function downloadJson(filename: string, payload: unknown): void {
 
 function formatPercent(value: number | undefined): string {
   return typeof value === "number" ? `${(value * 100).toFixed(0)}%` : "";
+}
+
+function formatCandidateMeta(candidate: StockVideoCandidate): string {
+  const size = candidate.width && candidate.height ? `${candidate.width}x${candidate.height}` : "size unknown";
+  const duration = candidate.durationSec ? `${candidate.durationSec}s` : "duration unknown";
+  const credit = candidate.contributorName ? ` by ${candidate.contributorName}` : "";
+  return `${size} ${duration}${credit}`;
 }
 
 function link(label: string, href: string): string {

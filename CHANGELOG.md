@@ -2,6 +2,19 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.3.0 - 2026-06-18
+
+### Added
+
+- Added an `Acquire` screen that turns the stock-video CLI into a local UI workflow for key status, provider selection, search, candidate selection, download, processing, and handoff to Motion or Rig Builder.
+- Added local Vite middleware for `/api/acquire/status`, `/api/acquire/search`, and `/api/acquire/process`, keeping Pexels and Pixabay keys server-side.
+- Added support for `pexel_key.txt` and `pixabay_key.txt` credential files in the parent Projects folder, including raw-key and `KEY=value` formats.
+- Added a mocked Playwright smoke test and screenshot for the acquisition workflow.
+
+### Changed
+
+- Bumped to `1.3.0` because motion acquisition is now part of the interactive app workflow, not only a CLI.
+
 ## 1.2.0 - 2026-06-18
 
 ### Added
