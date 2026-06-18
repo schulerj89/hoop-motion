@@ -38,6 +38,39 @@ input[type="text"] {
   background: #1a2025;
 }
 
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 80;
+  width: max-content;
+  max-width: 240px;
+  padding: 7px 9px;
+  border: 1px solid #7dffcf;
+  border-radius: 6px;
+  background: #f6f4ef;
+  color: #101418;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: normal;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after,
+.file-button:focus-within::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 button {
   cursor: pointer;
   padding: 0 14px;

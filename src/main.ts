@@ -85,27 +85,27 @@ app.innerHTML = `
         <h2>Rig Builder</h2>
         <div class="rig-row">
           <input id="rigModelUrl" type="text" value="/models/posebot.glb" aria-label="Model URL" />
-          <button id="loadRigModel" type="button">Load</button>
+          <button id="loadRigModel" type="button" data-tooltip="Load the GLB or GLTF URL into the Rig Builder.">Load</button>
         </div>
-        <label class="file-button">
+        <label class="file-button" data-tooltip="Import a local GLB or GLTF file from this computer.">
           <span>GLB File</span>
           <input id="rigModelFile" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json" />
         </label>
         <div class="rig-transform-target">
-          <button id="moveModel" type="button">Move Model</button>
-          <button id="placeJoints" type="button">Place Joints</button>
+          <button id="moveModel" type="button" data-tooltip="Attach the transform gizmo to the whole model. Use this to position, rotate, or scale an imported character.">Move Model</button>
+          <button id="placeJoints" type="button" data-tooltip="Attach the workflow to skeleton dots. Click the model to place the selected joint marker.">Place Joints</button>
         </div>
-        <select id="transformMode" aria-label="Transform mode">
+        <select id="transformMode" aria-label="Transform mode" data-tooltip="Choose whether the gizmo translates, rotates, or scales the selected target.">
           <option value="translate" selected>Translate</option>
           <option value="rotate">Rotate</option>
           <option value="scale">Scale</option>
         </select>
         <div class="rig-actions">
-          <button id="autoRig" type="button">Auto A/T</button>
-          <button id="exportRig" type="button">Export Rig</button>
-          <button id="exportPackage" type="button">Export Package</button>
+          <button id="autoRig" type="button" data-tooltip="Fill missing joint dots from the model bounds. Clicked or imported dots stay where you placed them.">Auto A/T</button>
+          <button id="exportRig" type="button" data-tooltip="Download the current skeleton marker profile as rig JSON.">Export Rig</button>
+          <button id="exportPackage" type="button" data-tooltip="Download the rig plus loaded animation data as a retarget package JSON.">Export Package</button>
         </div>
-        <label class="file-button">
+        <label class="file-button" data-tooltip="Load an existing rig JSON profile and show its markers on this model.">
           <span>Import Rig</span>
           <input id="importRig" type="file" accept="application/json,.json" />
         </label>
@@ -469,6 +469,7 @@ function renderJointButtons(): void {
     button.type = "button";
     button.textContent = joint.replace(/([A-Z])/g, " $1").trim();
     button.dataset.joint = joint;
+    button.dataset.tooltip = `Select ${button.textContent} for click placement or marker adjustment.`;
     button.addEventListener("click", () => {
       rigBuilder.selectJoint(joint);
       updateRigPanel(rigBuilder.getRig());

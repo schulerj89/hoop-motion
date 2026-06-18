@@ -26,7 +26,8 @@ export function createAutoRigFromModel(
   model: Object3D,
   name = "auto-rig",
   modelUrl?: string,
-  modelName?: string
+  modelName?: string,
+  existingRig?: RigFile
 ): RigFile {
   const bounds = new Box3().setFromObject(model);
   const size = bounds.getSize(new Vector3());
@@ -64,8 +65,20 @@ export function createAutoRigFromModel(
     RightFoot: at(x + hip * 1.45, y(0.02), z + height * 0.06)
   };
 
+  const hasPreservedMarkers = JOINT_NAMES.some((joint) => {
+    const existing = existingRig?.joints[joint];
+    return Boolean(existing && existing.source !== "auto");
+  });
   const joints = Object.fromEntries(
-    JOINT_NAMES.map((joint) => [joint, marker(joint, positions[joint], "auto")])
+    JOINT_NAMES.map((joint) => {
+      const existing = existingRig?.joints[joint];
+      return [
+        joint,
+        existing && existing.source !== "auto"
+          ? marker(joint, existing.position, existing.source)
+          : marker(joint, positions[joint], "auto")
+      ];
+    })
   ) as Record<JointName, RigJointMarker>;
 
   return {
@@ -74,7 +87,7 @@ export function createAutoRigFromModel(
     generatedAt: new Date().toISOString(),
     modelUrl,
     modelName,
-    authoringPose: "t-pose",
+    authoringPose: hasPreservedMarkers ? existingRig?.authoringPose ?? "custom" : "t-pose",
     joints,
     bones: BONES
   };

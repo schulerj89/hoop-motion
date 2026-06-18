@@ -11,14 +11,21 @@ test("auto-builds and exports a rig profile", async ({ page }) => {
 
   await page.locator("#autoRig").click();
   await expect(page.locator("#rigCountLabel")).toHaveText("18 / 18");
+  await page.mouse.move(24, 24);
   await page.waitForTimeout(1_500);
 
-  const outputDir = path.resolve("docs/screenshots/v1.1.1");
-  const artifactDir = path.resolve("docs/artifacts/v1.1.1");
+  const outputDir = path.resolve("docs/screenshots/v1.1.2");
+  const artifactDir = path.resolve("docs/artifacts/v1.1.2");
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(artifactDir, { recursive: true });
   await page.screenshot({
     path: path.join(outputDir, "rig-builder-auto-rig.png"),
+    fullPage: true
+  });
+  await page.locator("#autoRig").hover();
+  await page.waitForTimeout(250);
+  await page.screenshot({
+    path: path.join(outputDir, "rig-builder-auto-tooltip.png"),
     fullPage: true
   });
 
@@ -66,7 +73,7 @@ test("imports and moves a GLB model root", async ({ page }) => {
   await expect(page.locator("#modelTransformLabel")).toContainText(`X ${after[0].toFixed(2)}`);
   await page.waitForTimeout(1_000);
 
-  const outputDir = path.resolve("docs/screenshots/v1.1.1");
+  const outputDir = path.resolve("docs/screenshots/v1.1.2");
   mkdirSync(outputDir, { recursive: true });
   await page.screenshot({
     path: path.join(outputDir, "rig-builder-imported-model-moved.png"),

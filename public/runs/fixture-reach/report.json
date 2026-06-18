@@ -1,7 +1,7 @@
 {
   "schemaVersion": "kinerig.report.v1",
   "sourceVideo": "data/input/fixture_reach.mp4",
-  "generatedAt": "2026-06-18T19:49:28.946Z",
+  "generatedAt": "2026-06-18T20:10:12.562Z",
   "synthetic": true,
   "fps": 30,
   "framesProcessed": 90,

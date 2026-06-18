@@ -2,6 +2,17 @@
 
 All notable changes to KineRig Studio are tracked here using semantic versioning.
 
+## 1.1.2 - 2026-06-18
+
+### Fixed
+
+- Changed Rig Builder `Auto A/T` so it preserves clicked and imported joint dots, then only fills missing or previous auto-generated joints.
+- Added hover tooltips for Rig Builder controls to clarify model movement, joint placement, auto-fill behavior, export, and import actions.
+
+### Added
+
+- Patch screenshots proving the updated auto-fill tooltip and imported-model movement flow.
+
 ## 1.1.1 - 2026-06-18
 
 ### Fixed

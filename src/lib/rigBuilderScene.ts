@@ -160,7 +160,7 @@ export class RigBuilderScene {
   }
 
   autoRig(): void {
-    this.applyRig(createAutoRigFromModel(this.modelRoot, `${this.modelName}-rig`, this.modelUrl, this.modelName));
+    this.applyRig(createAutoRigFromModel(this.modelRoot, `${this.modelName}-rig`, this.modelUrl, this.modelName, this.rig));
   }
 
   applyRig(rig: RigFile): void {
